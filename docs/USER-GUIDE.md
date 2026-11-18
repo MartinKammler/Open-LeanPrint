@@ -186,6 +186,8 @@ many it left in the folder.
 While collecting, closing the window only hides it — the app keeps running in
 the tray so jobs keep arriving, and the pool starts empty when you come back.
 Double-click the tray icon to bring it back, or use *Exit* there to really quit.
+A balloon says so each time the window goes; *Tell me when the window goes to
+the tray* in the tray menu switches it off.
 
 The app remembers your layout, paper, margins, printer, watermark and whether it
 was collecting.
