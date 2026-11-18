@@ -67,7 +67,7 @@
   <data name="Job.Printing" xml:space="preserve"><value> · imprimées : {0}</value></data>
   <data name="Job.Turned" xml:space="preserve"><value> · {0} tournée(s)</value></data>
   <data name="Preview.Hint" xml:space="preserve"><value>La feuille composée apparaît ici.</value></data>
-  <data name="Preview.Tip" xml:space="preserve"><value>Clic droit sur une page de l’aperçu : la retirer, la tourner ou insérer une page vierge à côté.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Clic droit sur une page : la retirer, la tourner ou insérer une page vierge à côté. Ctrl+molette zoome, Ctrl+0 ajuste.</value></data>
   <data name="Sheet.Label" xml:space="preserve"><value>Feuille {0} sur {1}</value></data>
   <data name="PageMenu.Remove" xml:space="preserve"><value>Retirer la page {0} de {1}</value></data>
   <data name="PageMenu.Turn" xml:space="preserve"><value>Tourner la page {0} de 90°</value></data>

@@ -67,7 +67,7 @@
   <data name="Job.Printing" xml:space="preserve"><value> · printing {0}</value></data>
   <data name="Job.Turned" xml:space="preserve"><value> · {0} turned</value></data>
   <data name="Preview.Hint" xml:space="preserve"><value>The imposed sheet appears here.</value></data>
-  <data name="Preview.Tip" xml:space="preserve"><value>Right-click a page in the preview to remove it, turn it or put a blank page next to it.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Right-click a page to remove it, turn it or put a blank page next to it. Ctrl+mouse wheel zooms, Ctrl+0 fits.</value></data>
   <data name="Sheet.Label" xml:space="preserve"><value>Sheet {0} of {1}</value></data>
   <data name="PageMenu.Remove" xml:space="preserve"><value>Remove page {0} of {1}</value></data>
   <data name="PageMenu.Turn" xml:space="preserve"><value>Turn page {0} by 90°</value></data>

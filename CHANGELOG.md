@@ -4,6 +4,21 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] — 2026-11-18
+
+### Added
+
+- **Zoom in the preview.** Ctrl+mouse wheel zooms the sheet in steps up to
+  600 %, around the point under the pointer; Ctrl+plus and Ctrl+minus do the
+  same from the keyboard. The wheel alone scrolls a zoomed sheet, the middle
+  button drags it, and Ctrl+0 or a double-click fits it again. The zoom shows
+  next to the sheet number.
+
+  The picture is rendered again at the resolution the zoom needs once the wheel
+  rests, so text stays sharp instead of growing blurry - up to 400 dpi, beyond
+  which a large sheet would cost more memory than the detail is worth.
+  Right-clicking a page still finds it at any zoom.
+
 ## [0.5.2] — 2026-11-18
 
 ### Added

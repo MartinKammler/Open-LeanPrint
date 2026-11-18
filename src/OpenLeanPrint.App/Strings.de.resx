@@ -67,7 +67,7 @@
   <data name="Job.Printing" xml:space="preserve"><value> · gedruckt: {0}</value></data>
   <data name="Job.Turned" xml:space="preserve"><value> · {0} gedreht</value></data>
   <data name="Preview.Hint" xml:space="preserve"><value>Hier erscheint das fertige Blatt.</value></data>
-  <data name="Preview.Tip" xml:space="preserve"><value>Rechtsklick auf eine Seite in der Vorschau: entfernen, drehen oder eine leere Seite daneben einfügen.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Rechtsklick auf eine Seite: entfernen, drehen oder leere Seite daneben einfügen. Strg+Mausrad zoomt, Strg+0 passt ein.</value></data>
   <data name="Sheet.Label" xml:space="preserve"><value>Blatt {0} von {1}</value></data>
   <data name="PageMenu.Remove" xml:space="preserve"><value>Seite {0} von {1} entfernen</value></data>
   <data name="PageMenu.Turn" xml:space="preserve"><value>Seite {0} um 90° drehen</value></data>

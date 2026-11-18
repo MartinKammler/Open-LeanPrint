@@ -67,7 +67,7 @@
   <data name="Job.Printing" xml:space="preserve"><value> · se imprimen: {0}</value></data>
   <data name="Job.Turned" xml:space="preserve"><value> · {0} girada(s)</value></data>
   <data name="Preview.Hint" xml:space="preserve"><value>Aquí aparece la hoja compuesta.</value></data>
-  <data name="Preview.Tip" xml:space="preserve"><value>Clic derecho en una página de la vista previa: quitarla, girarla o insertar una página en blanco al lado.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Clic derecho en una página: quitarla, girarla o insertar una página en blanco al lado. Ctrl+rueda amplía, Ctrl+0 ajusta.</value></data>
   <data name="Sheet.Label" xml:space="preserve"><value>Hoja {0} de {1}</value></data>
   <data name="PageMenu.Remove" xml:space="preserve"><value>Quitar la página {0} de {1}</value></data>
   <data name="PageMenu.Turn" xml:space="preserve"><value>Girar la página {0} 90°</value></data>

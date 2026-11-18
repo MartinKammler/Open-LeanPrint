@@ -31,6 +31,21 @@ public partial class MainWindow : Window
     /// <summary>Preview resolution. Enough to read the layout, cheap to render.</summary>
     private const int PreviewDpi = 120;
 
+    /// <summary>The zoom steps Ctrl+wheel moves through; 1 is "the sheet fits the window".</summary>
+    private static readonly double[] ZoomSteps = { 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6 };
+
+    /// <summary>
+    /// No sharper than this, however far it is zoomed: a 6x A3 sheet at screen
+    /// resolution is a few hundred megapixels, and PDFium would render every one.
+    /// </summary>
+    private const int MaxPreviewDpi = 400;
+
+    private double _zoom = 1;
+    private int _renderedDpi;
+    private int _renderGeneration;
+    private Point? _panFrom;
+    private readonly DispatcherTimer _sharpen = new() { Interval = TimeSpan.FromMilliseconds(250) };
+
     /// <summary>Resolution the printer path rasterises at.</summary>
     private const int PrintDpi = 200;
 
@@ -128,6 +143,15 @@ public partial class MainWindow : Window
             _debounce.Stop();
             _ = RefreshAsync();
         };
+
+        // Zooming enlarges the picture at once and renders it sharp once the
+        // wheel has rested - rendering on every notch would stutter.
+        _sharpen.Tick += (_, _) =>
+        {
+            _sharpen.Stop();
+            if (WantedDpi() > _renderedDpi * 1.15) _ = ShowSheetAsync(CancellationToken.None);
+        };
+        PreviewKeyDown += Window_PreviewKeyDown;
 
         _tray = new TrayPresence();
         _tray.ShowRequested += (_, _) => Dispatcher.Invoke(RestoreFromTray);
@@ -1051,8 +1075,14 @@ public partial class MainWindow : Window
         if (pdf is null || _sheetCount == 0) return;
 
         int index = _sheetIndex;
-        byte[] png = await Task.Run(() => PdfRasterizer.RenderPagePng(pdf, index, PreviewDpi), token);
-        if (token.IsCancellationRequested) return;
+        SizeSheet();
+        int dpi = WantedDpi();
+        int generation = ++_renderGeneration;
+        byte[] png = await Task.Run(() => PdfRasterizer.RenderPagePng(pdf, index, dpi), token);
+        // Zooming can start a render while another is running; the older one
+        // must not land on top of the newer.
+        if (token.IsCancellationRequested || generation != _renderGeneration) return;
+        _renderedDpi = dpi;
 
         var image = new BitmapImage();
         using (var stream = new MemoryStream(png))
@@ -1129,6 +1159,148 @@ public partial class MainWindow : Window
         }
 
         menu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    // ---------- preview zoom ----------
+
+    /// <summary>
+    /// Gives the sheet its size on screen: as large as fits the visible area at
+    /// zoom 1, that times the zoom otherwise. Everything else - the hit test
+    /// for right-clicks included - measures against this size.
+    /// </summary>
+    private void SizeSheet()
+    {
+        if (_layout is null || _sheetIndex >= _layout.Sheets.Count) return;
+
+        var size = _layout.Sheets[_sheetIndex].Size;
+        double margin = SheetShadow.Margin.Left + SheetShadow.Margin.Right;
+        // One pixel short of the edge: an exact fit can round up into a scroll
+        // bar, which shrinks the area, which refits - a flicker loop.
+        double width = Math.Max(1, PreviewScroller.ActualWidth - margin - 1);
+        double height = Math.Max(1, PreviewScroller.ActualHeight - margin - 1);
+        double fit = Math.Min(width / size.Width, height / size.Height);
+
+        SheetShadow.Width = size.Width * fit * _zoom;
+        SheetShadow.Height = size.Height * fit * _zoom;
+    }
+
+    /// <summary>The render resolution at which one sheet point lands on one screen pixel or more.</summary>
+    private int WantedDpi()
+    {
+        if (_layout is null || _sheetIndex >= _layout.Sheets.Count || double.IsNaN(SheetShadow.Width)) return PreviewDpi;
+
+        double inches = _layout.Sheets[_sheetIndex].Size.Width / 72.0;
+        double pixels = SheetShadow.Width * System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+        return (int)Math.Clamp(Math.Ceiling(pixels / inches), PreviewDpi, MaxPreviewDpi);
+    }
+
+    private void PreviewScroller_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        SizeSheet();
+        // A larger window needs a sharper picture as much as a larger zoom does.
+        _sharpen.Stop();
+        _sharpen.Start();
+    }
+
+    /// <summary>Ctrl+wheel zooms around the pointer; the wheel alone scrolls, as everywhere else.</summary>
+    private void PreviewScroller_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0 || _imposed is null) return;
+        e.Handled = true;
+
+        int current = Array.FindLastIndex(ZoomSteps, step => step <= _zoom + 1e-6);
+        int next = Math.Clamp(current + (e.Delta > 0 ? 1 : -1), 0, ZoomSteps.Length - 1);
+        SetZoom(ZoomSteps[next], e.GetPosition(PreviewScroller));
+    }
+
+    /// <summary>
+    /// Changes the zoom and keeps the spot under <paramref name="anchor"/> (a
+    /// point in the visible area) where it was, so zooming in goes towards what
+    /// you are pointing at instead of drifting off to the top left.
+    /// </summary>
+    private void SetZoom(double zoom, Point? anchor = null)
+    {
+        if (Math.Abs(zoom - _zoom) < 1e-6) return;
+
+        var spot = anchor ?? new Point(PreviewScroller.ViewportWidth / 2, PreviewScroller.ViewportHeight / 2);
+        var before = PreviewScroller.TranslatePoint(spot, SheetShadow);
+        double fx = SheetShadow.ActualWidth > 0 ? before.X / SheetShadow.ActualWidth : 0.5;
+        double fy = SheetShadow.ActualHeight > 0 ? before.Y / SheetShadow.ActualHeight : 0.5;
+
+        _zoom = zoom;
+        SizeSheet();
+        PreviewScroller.UpdateLayout();
+
+        var origin = SheetShadow.TranslatePoint(new Point(0, 0), PreviewScroller);
+        PreviewScroller.ScrollToHorizontalOffset(PreviewScroller.HorizontalOffset + origin.X + fx * SheetShadow.Width - spot.X);
+        PreviewScroller.ScrollToVerticalOffset(PreviewScroller.VerticalOffset + origin.Y + fy * SheetShadow.Height - spot.Y);
+
+        UpdateControls();
+        _sharpen.Stop();
+        _sharpen.Start();
+    }
+
+    /// <summary>Ctrl+0 fits the sheet again; Ctrl+plus and Ctrl+minus zoom without a wheel.</summary>
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0 || _imposed is null) return;
+        // In a text box, Ctrl+0 and Ctrl+minus belong to the text.
+        if (Keyboard.FocusedElement is TextBox) return;
+
+        int current = Array.FindLastIndex(ZoomSteps, step => step <= _zoom + 1e-6);
+        switch (e.Key)
+        {
+            case Key.D0 or Key.NumPad0:
+                SetZoom(1);
+                break;
+            case Key.OemPlus or Key.Add:
+                SetZoom(ZoomSteps[Math.Min(current + 1, ZoomSteps.Length - 1)]);
+                break;
+            case Key.OemMinus or Key.Subtract:
+                SetZoom(ZoomSteps[Math.Max(current - 1, 0)]);
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// A double-click fits the sheet again; the middle button grabs it and
+    /// drags it around, like a hand tool in a PDF reader.
+    /// </summary>
+    private void PreviewScroller_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && _zoom != 1)
+        {
+            SetZoom(1);
+            e.Handled = true;
+        }
+        else if (e.ChangedButton == MouseButton.Middle && _zoom > 1)
+        {
+            _panFrom = e.GetPosition(PreviewScroller);
+            PreviewScroller.CaptureMouse();
+            PreviewScroller.Cursor = Cursors.SizeAll;
+            e.Handled = true;
+        }
+    }
+
+    private void PreviewScroller_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_panFrom is not { } from) return;
+        var now = e.GetPosition(PreviewScroller);
+        PreviewScroller.ScrollToHorizontalOffset(PreviewScroller.HorizontalOffset - (now.X - from.X));
+        PreviewScroller.ScrollToVerticalOffset(PreviewScroller.VerticalOffset - (now.Y - from.Y));
+        _panFrom = now;
+    }
+
+    private void PreviewScroller_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle || _panFrom is null) return;
+        _panFrom = null;
+        PreviewScroller.ReleaseMouseCapture();
+        PreviewScroller.Cursor = null;
         e.Handled = true;
     }
 
@@ -1543,6 +1715,8 @@ public partial class MainWindow : Window
         NextSheet.IsEnabled = hasSheets && _sheetIndex < _sheetCount - 1;
 
         SheetLabel.Text = hasSheets ? Loc.Format("Sheet.Label", _sheetIndex + 1, _sheetCount) : "—";
+        if (hasSheets && _zoom != 1)
+            SheetLabel.Text += string.Format(CultureInfo.CurrentCulture, " · {0:P0}", _zoom);
         PreviewTip.Visibility = hasSheets ? Visibility.Visible : Visibility.Hidden;
 
         if (!hasJobs)

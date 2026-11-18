@@ -147,6 +147,11 @@ report.pdf", "Turn page 3 by 90°" — and for a removal the remaining pages flo
 up to fill the gap. The menu also offers to restore all pages of that job, or to
 put a turned page back upright.
 
+**Zoom** with Ctrl+mouse wheel, around the point under the pointer - or
+Ctrl+plus and Ctrl+minus. A zoomed sheet scrolls with the wheel and drags with
+the middle mouse button; Ctrl+0 or a double-click fits it to the window again.
+It sharpens a moment after you stop zooming.
+
 **Blank pages** go in from the same menu: *Insert a blank page before page 3* or
 *after page 3*. A blank takes a place on the sheet like a page and prints as
 nothing - to start a chapter on a right-hand page, to even out a booklet, or to

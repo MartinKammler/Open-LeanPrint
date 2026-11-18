@@ -193,17 +193,28 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Background="{DynamicResource Mat}" Padding="28">
+                <Border Background="{DynamicResource Mat}">
                     <Grid>
-                        <Border x:Name="SheetShadow" Background="White" HorizontalAlignment="Center"
-                                VerticalAlignment="Center" Visibility="Collapsed">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.45" Color="Black"/>
-                            </Border.Effect>
-                            <Image x:Name="PreviewImage" Stretch="Uniform"
-                                   RenderOptions.BitmapScalingMode="HighQuality"
-                                   MouseRightButtonUp="Preview_RightClick"/>
-                        </Border>
+                        <!-- The sheet sits in a scroll viewer so it can be zoomed past the
+                             window. Its size is set from code: inside a scroll viewer
+                             nothing limits it, so Stretch alone would never fit it. -->
+                        <ScrollViewer x:Name="PreviewScroller" Focusable="False"
+                                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                      SizeChanged="PreviewScroller_SizeChanged"
+                                      PreviewMouseWheel="PreviewScroller_MouseWheel"
+                                      PreviewMouseDown="PreviewScroller_MouseDown"
+                                      PreviewMouseMove="PreviewScroller_MouseMove"
+                                      PreviewMouseUp="PreviewScroller_MouseUp">
+                            <Border x:Name="SheetShadow" Background="White" Margin="28"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.45" Color="Black"/>
+                                </Border.Effect>
+                                <Image x:Name="PreviewImage" Stretch="Fill"
+                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                       MouseRightButtonUp="Preview_RightClick"/>
+                            </Border>
+                        </ScrollViewer>
 
                         <TextBlock x:Name="PreviewHint" Foreground="{DynamicResource MatInk}" FontSize="14"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"
