@@ -101,6 +101,9 @@
         edges at all, and a list of three jobs read as one block of text.
     -->
     <Style x:Key="JobCard" TargetType="ListBoxItem">
+        <!-- Said here because nothing else does: a ListBoxItem takes its text
+             colour from the system, which is black whatever the theme. -->
+        <Setter Property="Foreground" Value="{DynamicResource Ink}"/>
         <Setter Property="Margin" Value="2,0,2,6"/>
         <Setter Property="Padding" Value="10,8"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>

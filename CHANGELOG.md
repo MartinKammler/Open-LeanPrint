@@ -4,6 +4,14 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **The job names in the pool were black on dark blue in the dark mode.** A
+  list item takes its text colour from the system unless told otherwise, and
+  the job card style never said; it does now.
+
 ## [0.5.1] — 2026-11-18
 
 ### Added
