@@ -317,6 +317,28 @@ internal sealed class TrayPresence : IDisposable
             RoundedEdges = false;
         }
 
+        /// <summary>
+        /// The highlight under the pointer, and on an item whose submenu is
+        /// open. WinForms only takes it from the colour table when visual
+        /// styles are on - and a WPF app never turns them on for its WinForms
+        /// parts - so otherwise it paints Windows' light blue under this menu's
+        /// light text, and the item can no longer be read. Painted here, it does
+        /// not depend on that.
+        /// </summary>
+        protected override void OnRenderMenuItemBackground(WinForms.ToolStripItemRenderEventArgs e)
+        {
+            if (!e.Item.IsOnDropDown || !e.Item.Enabled || !(e.Item.Selected || e.Item.Pressed))
+            {
+                base.OnRenderMenuItemBackground(e);
+                return;
+            }
+
+            // Inset like the stock highlight, so the image margin stays visible.
+            var bounds = new Drawing.Rectangle(2, 0, e.Item.Width - 3, e.Item.Height);
+            using var fill = new Drawing.SolidBrush(ColorTable.MenuItemSelected);
+            e.Graphics.FillRectangle(fill, bounds);
+        }
+
         protected override void OnRenderArrow(WinForms.ToolStripArrowRenderEventArgs e)
         {
             e.ArrowColor = DarkMenuColors.Text;

@@ -4,6 +4,16 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] — 2026-11-18
+
+### Fixed
+
+- **The dark tray menu's highlight was light blue under light text.** The
+  item under the pointer - and one whose submenu was open - could not be read.
+  WinForms takes that colour from the theme only when visual styles are on,
+  which a WPF app never turns on for its WinForms parts, and fell back to
+  Windows' own light blue. The dark menu now paints its highlight itself.
+
 ## [0.5.5] — 2026-11-18
 
 ### Added
