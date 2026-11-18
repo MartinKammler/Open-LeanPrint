@@ -2,16 +2,16 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Open-LeanPrint" Height="800" Width="1220" MinHeight="560" MinWidth="900"
-        WindowStartupLocation="CenterScreen" Background="{StaticResource Chrome}"
-        Foreground="{StaticResource Ink}"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource Chrome}"
+        Foreground="{DynamicResource Ink}"
         Icon="pack://application:,,,/OpenLeanPrint;component/Assets/OpenLeanPrint.ico"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop">
 
     <DockPanel>
 
         <!-- Toolbar: everything that changes the layout -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource Panel}"
-                BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="12,10">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Panel}"
+                BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,10">
             <WrapPanel>
                 <Button x:Name="AddButton" Content="Add PDFs…" Click="AddJobs_Click"/>
                 <Button x:Name="RemoveButton" Content="Remove" Click="RemoveJob_Click"/>
@@ -21,7 +21,7 @@
                 <Button x:Name="PrinterSetupButton" Content="Set up virtual printer…" Click="PrinterSetup_Click"
                         ToolTip="Creates the Windows printer queue that feeds OpenLeanPrint. Needs administrator rights once."/>
 
-                <Border Width="1" Background="{StaticResource Line}" Margin="8,2,14,2"/>
+                <Border Width="1" Background="{DynamicResource Line}" Margin="8,2,14,2"/>
 
                 <TextBlock Text="Layout" Style="{StaticResource Label}" Margin="0,3,8,3"
                            ToolTip="How many pages go on one sheet. These buttons are the usual choices and simply fill in the Grid box next to them."/>
@@ -58,7 +58,7 @@
                 <TextBox x:Name="WatermarkBox" Width="120" TextChanged="Debounced_Changed"
                          ToolTip="Text drawn diagonally across every sheet, e.g. DRAFT. Empty means none."/>
 
-                <Border Width="1" Background="{StaticResource Line}" Margin="14,2,10,2"/>
+                <Border Width="1" Background="{DynamicResource Line}" Margin="14,2,10,2"/>
 
                 <TextBlock Text="Profile" Style="{StaticResource Label}" Margin="0,0,6,0"/>
                 <ComboBox x:Name="ProfileBox" Width="150" IsEditable="True"
@@ -71,8 +71,8 @@
         </Border>
 
         <!-- Action bar: what leaves the app -->
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}"
-                BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="12,10">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Panel}"
+                BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,10">
             <DockPanel>
                 <Button x:Name="PrintCloseButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}"
                         Content="Print and close" Click="PrintAndClose_Click" Margin="6,3,0,3" MinWidth="120"
@@ -87,7 +87,7 @@
                           ToolTip="Long edge is the usual choice for upright sheets - the back reads like the next page of a book. Booklets need short edge instead: their sheets are landscape, so flipping the long edge prints every second side upside down. What was actually applied is reported after printing."/>
                 <TextBlock DockPanel.Dock="Right" Text="Sides" Style="{StaticResource Label}"/>
                 <Button x:Name="SaveButton" DockPanel.Dock="Right" Content="Save PDF…" Click="Save_Click"/>
-                <TextBlock x:Name="StatusText" Foreground="{StaticResource InkMuted}" Text="No jobs yet."/>
+                <TextBlock x:Name="StatusText" Foreground="{DynamicResource InkMuted}" Text="No jobs yet."/>
             </DockPanel>
         </Border>
 
@@ -99,7 +99,7 @@
 
             <!-- Job pool. The quieter of the two greys, so the white job cards
                  have something to stand out from. -->
-            <Border Background="{StaticResource Chrome}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+            <Border Background="{DynamicResource Chrome}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Padding="14,12,14,8">
                         <StackPanel>
@@ -155,14 +155,14 @@
                                     <StackPanel>
                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                                         <TextBlock Text="{Binding Summary}" FontSize="11" Margin="0,2,0,0"
-                                                   Foreground="{StaticResource InkMuted}"/>
+                                                   Foreground="{DynamicResource InkMuted}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
 
                         <TextBlock x:Name="EmptyPoolHint" Margin="18" TextWrapping="Wrap"
-                                   Foreground="{StaticResource InkMuted}" VerticalAlignment="Top"
+                                   Foreground="{DynamicResource InkMuted}" VerticalAlignment="Top"
                                    Text="Drop PDFs here, or use Add PDFs — or switch on “Collect captured jobs” and print from any application. Several jobs are combined onto shared sheets, in this order."/>
                     </Grid>
                 </DockPanel>
@@ -175,7 +175,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Background="{StaticResource Mat}" Padding="28">
+                <Border Background="{DynamicResource Mat}" Padding="28">
                     <Grid>
                         <Border x:Name="SheetShadow" Background="White" HorizontalAlignment="Center"
                                 VerticalAlignment="Center" Visibility="Collapsed">
@@ -187,7 +187,7 @@
                                    MouseRightButtonUp="Preview_RightClick"/>
                         </Border>
 
-                        <TextBlock x:Name="PreviewHint" Foreground="#FFD8D8DE" FontSize="14"
+                        <TextBlock x:Name="PreviewHint" Foreground="{DynamicResource MatInk}" FontSize="14"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                    Text="The imposed sheet appears here."/>
                     </Grid>
@@ -200,7 +200,7 @@
                         <Button x:Name="NextSheet" Content="▶" Click="NextSheet_Click"/>
                     </StackPanel>
                     <TextBlock x:Name="PreviewTip" HorizontalAlignment="Center" Margin="0,6,0,0"
-                               FontSize="11" Foreground="{StaticResource InkMuted}"
+                               FontSize="11" Foreground="{DynamicResource InkMuted}"
                                Text="Right-click a page in the preview to remove it."/>
                 </StackPanel>
             </Grid>

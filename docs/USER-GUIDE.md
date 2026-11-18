@@ -187,8 +187,12 @@ While collecting, closing the window only hides it — the app keeps running in
 the tray so jobs keep arriving, and the pool starts empty when you come back.
 Double-click the tray icon to bring it back, or use *Exit* there to really quit.
 
-The app remembers your layout, paper, margins, printer, watermark and whether it
-was collecting.
+**Appearance.** The window follows Windows' light or dark mode, and changes with
+it. *Appearance* in the tray menu can fix it to *Light* or *Dark* instead. The
+preview sheet stays white either way: it is a picture of paper.
+
+The app remembers your layout, paper, margins, printer, watermark, appearance and
+whether it was collecting.
 
 ## Hands-free: watch
 

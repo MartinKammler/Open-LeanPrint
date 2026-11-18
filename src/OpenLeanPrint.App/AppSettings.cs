@@ -49,6 +49,9 @@ public sealed record AppSettings
     /// <summary>Bring the window up when a job arrives, the way a print dialog would.</summary>
     public bool ShowOnCapture { get; init; } = true;
 
+    /// <summary>System, Light or Dark. Stored as text so the file stays readable.</summary>
+    public string Theme { get; init; } = nameof(ThemePreference.System);
+
 
     /// <summary>Whether the app has already offered to create the printer.</summary>
     public bool PrinterSetupOffered { get; init; }

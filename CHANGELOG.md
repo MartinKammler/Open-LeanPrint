@@ -4,6 +4,21 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **A dark mode.** The window follows Windows' "Choose your app mode" setting
+  and switches along with it, title bar included. *Appearance* in the tray menu
+  fixes it to *Light* or *Dark* instead; the choice is remembered. The preview
+  sheet stays white, because it shows paper.
+
+  The palette now sits behind DynamicResource references, so a change reaches
+  the open window at once. Text boxes, drop-downs, check boxes, menus, tooltips
+  and scroll bars carry templates of their own: the stock ones draw parts of
+  themselves in fixed system colours, which no style can reach - a white
+  drop-down or a black tick on a dark field. The light look is unchanged.
+
 ## [0.4.2] — 2026-08-25
 
 ### Fixed

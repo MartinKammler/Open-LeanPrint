@@ -129,6 +129,11 @@ public partial class MainWindow : Window
         _tray.ExitRequested += (_, _) => Dispatcher.Invoke(ExitForGood);
         _tray.CollectingChanged += (_, collecting) => Dispatcher.Invoke(() => SetCollecting(collecting));
         _tray.ShowOnCaptureChanged += (_, show) => Dispatcher.Invoke(() => SetShowOnCapture(show));
+        _tray.ThemeChosen += (_, preference) => Dispatcher.Invoke(() => SetTheme(preference));
+
+        ThemeManager.Track(this);
+        // Covers Windows switching on its own while "Same as Windows" is chosen.
+        ThemeManager.Changed += (_, _) => _tray.SetTheme(ThemeManager.Preference, ThemeManager.IsDark);
 
         var settings = AppSettings.Load();
         ApplySettings(settings);
@@ -159,6 +164,7 @@ public partial class MainWindow : Window
     {
         _printerSetupOffered = settings.PrinterSetupOffered;
         SetShowOnCapture(settings.ShowOnCapture);
+        SetTheme(ThemeManager.TryParse(settings.Theme, out var theme) ? theme : ThemePreference.System);
         _booklet = settings.Booklet;
         _rows = Math.Max(1, settings.Rows);
         _columns = Math.Max(1, settings.Columns);
@@ -201,6 +207,7 @@ public partial class MainWindow : Window
         Profiles = _profiles.ToList(),
         CollectCapturedJobs = CollectToggle.IsChecked == true,
         ShowOnCapture = _showOnCapture,
+        Theme = ThemeManager.Preference.ToString(),
     };
 
     private DuplexMode SelectedDuplex() =>
@@ -417,6 +424,15 @@ public partial class MainWindow : Window
     {
         _showOnCapture = show;
         _tray.SetShowOnCapture(show);
+    }
+
+    /// <summary>Single entry point, so the tray menu and this cannot drift apart.</summary>
+    private void SetTheme(ThemePreference preference)
+    {
+        ThemeManager.Apply(preference);
+        // Changed only fires when the colours change; choosing "Same as
+        // Windows" while Windows is light moves the tick and nothing else.
+        _tray.SetTheme(ThemeManager.Preference, ThemeManager.IsDark);
     }
 
     /// <summary>
@@ -649,7 +665,7 @@ public partial class MainWindow : Window
 
         bool valid = PageSelection.TryParse(PagesBox.Text, out var selection);
         // Red while it does not parse - but never silently print the wrong pages.
-        PagesBox.Foreground = valid ? SystemColors.ControlTextBrush : System.Windows.Media.Brushes.Firebrick;
+        ShowValidity(PagesBox, valid);
         if (!valid) return;
 
         job.Pages = selection;
@@ -696,7 +712,7 @@ public partial class MainWindow : Window
         if (!IsLoaded || _suppressGridEdit) return;
 
         bool valid = NUpGrid.TryParse(GridBox.Text, out int rows, out int columns);
-        GridBox.Foreground = valid ? SystemColors.ControlTextBrush : System.Windows.Media.Brushes.Firebrick;
+        ShowValidity(GridBox, valid);
         if (!valid) return;
 
         _rows = rows;
@@ -714,13 +730,24 @@ public partial class MainWindow : Window
         _debounce.Start();
     }
 
+    /// <summary>
+    /// Red text for input that does not parse. A reference into the palette
+    /// rather than a brush, so the colour follows the theme; clearing it hands
+    /// the box back to its style.
+    /// </summary>
+    private static void ShowValidity(TextBox box, bool valid)
+    {
+        if (valid) box.ClearValue(ForegroundProperty);
+        else box.SetResourceReference(ForegroundProperty, "Error");
+    }
+
     /// <summary>Writes the grid box without it counting as an edit.</summary>
     private void ShowGrid()
     {
         _suppressGridEdit = true;
         GridBox.Text = _booklet ? "2-up" : NUpGrid.Format(_rows, _columns);
         GridBox.IsEnabled = !_booklet;
-        GridBox.Foreground = SystemColors.ControlTextBrush;
+        ShowValidity(GridBox, valid: true);
         _suppressGridEdit = false;
     }
 
