@@ -12,12 +12,22 @@ namespace OpenLeanPrint.Capture;
 /// therefore queued and only handed on once the file has stopped growing and can
 /// be opened exclusively.
 /// </para>
+/// <para>
+/// Events alone are not trusted to be complete. A FileSystemWatcher drops
+/// them when its buffer overflows, and a file that was still locked when its
+/// wait ran out has had its only event. So the folder is also compared with
+/// what has been handled - after an overflow and every
+/// <see cref="ReconcileInterval"/> - and a file that timed out is tried again,
+/// up to <see cref="MaxAttempts"/> times, before it is given up on.
+/// </para>
 /// </summary>
 public sealed class CapturedFolderWatcher : IDisposable
 {
     private readonly FileSystemWatcher _watcher;
     private readonly BlockingCollection<string> _queue = new();
     private readonly HashSet<string> _seen = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _attempts = new(StringComparer.OrdinalIgnoreCase);
+    private Timer? _reconcile;
     private CancellationTokenSource? _cancellation;
     private Thread? _consumer;
 
@@ -34,6 +44,8 @@ public sealed class CapturedFolderWatcher : IDisposable
         _watcher.Created += (_, e) => Enqueue(e.FullPath);
         // Some writers create a temp file and rename it into place.
         _watcher.Renamed += (_, e) => Enqueue(e.FullPath);
+        // A buffer overflow means events were lost; the folder still knows.
+        _watcher.Error += (_, _) => Reconcile();
     }
 
     /// <summary>The folder being watched (absolute).</summary>
@@ -42,13 +54,19 @@ public sealed class CapturedFolderWatcher : IDisposable
     /// <summary>How long to wait for a file to finish being written.</summary>
     public TimeSpan CompletionTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>How often the folder is compared with what has been handled, to catch anything an event missed.</summary>
+    public TimeSpan ReconcileInterval { get; init; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>How often a file that never settled is tried before <see cref="JobTimedOut"/> gives it up.</summary>
+    public int MaxAttempts { get; init; } = 3;
+
     /// <summary>Optional veto, e.g. to ignore a nested output folder.</summary>
     public Func<string, bool>? Accept { get; init; }
 
     /// <summary>A file finished arriving. Raised on a background thread.</summary>
     public event EventHandler<string>? JobArrived;
 
-    /// <summary>A file never stopped changing within <see cref="CompletionTimeout"/>.</summary>
+    /// <summary>A file never stopped changing within <see cref="CompletionTimeout"/>, <see cref="MaxAttempts"/> times over.</summary>
     public event EventHandler<string>? JobTimedOut;
 
     /// <summary>Starts watching. <paramref name="includeExisting"/> also picks up what is already there.</summary>
@@ -68,6 +86,7 @@ public sealed class CapturedFolderWatcher : IDisposable
         _consumer.Start();
 
         _watcher.EnableRaisingEvents = true;
+        _reconcile = new Timer(_ => Reconcile(), null, ReconcileInterval, ReconcileInterval);
 
         if (includeExisting)
             foreach (string path in Directory.EnumerateFiles(Folder, _watcher.Filter)) Enqueue(path);
@@ -77,6 +96,8 @@ public sealed class CapturedFolderWatcher : IDisposable
     public void Stop()
     {
         _watcher.EnableRaisingEvents = false;
+        _reconcile?.Dispose();
+        _reconcile = null;
         _cancellation?.Cancel();
         _consumer?.Join(TimeSpan.FromSeconds(2));
         _consumer = null;
@@ -93,7 +114,8 @@ public sealed class CapturedFolderWatcher : IDisposable
             if (!_seen.Add(path)) return; // one file can raise several events
         }
 
-        // The queue is only closed on Dispose; losing a late event is harmless.
+        // The queue is only closed on Dispose; losing a late event - or a late
+        // reconcile - is harmless. ObjectDisposedException is one of these.
         try { _queue.Add(path); }
         catch (InvalidOperationException) { }
     }
@@ -105,9 +127,19 @@ public sealed class CapturedFolderWatcher : IDisposable
             foreach (string path in _queue.GetConsumingEnumerable(token))
             {
                 if (WaitUntilComplete(path, CompletionTimeout))
+                {
                     JobArrived?.Invoke(this, path);
-                else
+                }
+                else if (!File.Exists(path))
+                {
+                    // Gone before it settled - removed, or renamed into its
+                    // real name, which raises an event of its own.
+                    lock (_seen) _attempts.Remove(path);
+                }
+                else if (GiveUp(path))
+                {
                     JobTimedOut?.Invoke(this, path);
+                }
             }
         }
         catch (OperationCanceledException)
@@ -120,6 +152,40 @@ public sealed class CapturedFolderWatcher : IDisposable
     /// Waits until a file has stopped growing and is no longer locked by its
     /// writer. Returns false if it never settled.
     /// </summary>
+    /// <summary>
+    /// Counts a timed-out attempt. Under the limit the file is forgotten, so the
+    /// next comparison with the folder queues it again.
+    /// </summary>
+    /// <returns>True once the file has had all its attempts.</returns>
+    private bool GiveUp(string path)
+    {
+        lock (_seen)
+        {
+            int attempts = _attempts.TryGetValue(path, out int n) ? n + 1 : 1;
+            if (attempts >= MaxAttempts)
+            {
+                _attempts.Remove(path);
+                return true;
+            }
+            _attempts[path] = attempts;
+            _seen.Remove(path);
+            return false;
+        }
+    }
+
+    /// <summary>Queues every file in the folder that has not been handled yet.</summary>
+    private void Reconcile()
+    {
+        try
+        {
+            foreach (string path in Directory.EnumerateFiles(Folder, _watcher.Filter)) Enqueue(path);
+        }
+        catch (Exception)
+        {
+            // The folder is briefly gone or unreadable; the next round will see.
+        }
+    }
+
     private static bool WaitUntilComplete(string path, TimeSpan timeout)
     {
         DateTime deadline = DateTime.UtcNow + timeout;

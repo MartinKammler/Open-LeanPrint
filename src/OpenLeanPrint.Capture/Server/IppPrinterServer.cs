@@ -22,6 +22,24 @@ public sealed record IppPrinterOptions
 
     /// <summary>The http:// prefix the listener binds to.</summary>
     public string HttpPrefix => $"http://localhost:{Port}/";
+
+    /// <summary>
+    /// The largest request, and the largest document across a job's
+    /// Send-Documents, that is accepted. Everything is held in memory until the
+    /// job is stored, so without a ceiling one runaway client - anything on the
+    /// machine can reach the port - could take the service down. A gigabyte is
+    /// far beyond any document a print dialog produces.
+    /// </summary>
+    public long MaxDocumentBytes { get; init; } = 1L << 30;
+
+    /// <summary>How long a job begun with Create-Job may wait for its next Send-Document before it is dropped.</summary>
+    public TimeSpan PendingJobTimeout { get; init; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>How many Create-Job jobs may be open at once; beyond that the printer reports itself busy.</summary>
+    public int MaxPendingJobs { get; init; } = 32;
+
+    /// <summary>How many requests are worked on at the same time; the rest wait in the listener's queue.</summary>
+    public int MaxConcurrentRequests { get; init; } = 8;
 }
 
 /// <summary>
@@ -40,6 +58,7 @@ public sealed class IppPrinterServer : IDisposable
     private readonly HttpListener _listener = new();
     private readonly ConcurrentDictionary<int, PendingJob> _pendingJobs = new();
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
+    private readonly SemaphoreSlim _slots;
 
     // Stable UUID advertised as printer-uuid (IPP Everywhere requires one).
     private const string PrinterUuid = "urn:uuid:6f4c6e50-7072-696e-7420-4f70656e4c50";
@@ -51,9 +70,19 @@ public sealed class IppPrinterServer : IDisposable
     {
         _options = options ?? new IppPrinterOptions();
         _listener.Prefixes.Add(_options.HttpPrefix);
+        _slots = new SemaphoreSlim(Math.Max(1, _options.MaxConcurrentRequests));
     }
 
-    /// <summary>Raised on the thread pool whenever a complete job has been captured.</summary>
+    /// <summary>
+    /// Keeps a finished job before the client is told it succeeded. Return
+    /// false, or throw, when it could not be kept - a full disk, a locked
+    /// folder - and the client hears that the job failed, so Windows reports an
+    /// error instead of a document vanishing while the queue says "printed".
+    /// Without it, a job counts as kept once <see cref="JobCaptured"/> has run.
+    /// </summary>
+    public Func<CapturedJob, bool>? StoreJob { get; set; }
+
+    /// <summary>Raised on the thread pool whenever a complete job has been captured (and, with <see cref="StoreJob"/>, stored).</summary>
     public event EventHandler<CapturedJob>? JobCaptured;
 
     /// <summary>
@@ -104,7 +133,24 @@ public sealed class IppPrinterServer : IDisposable
                 break; // listener stopped
             }
 
-            _ = Task.Run(() => HandleRequestAsync(context), CancellationToken.None);
+            // Back-pressure: with every slot busy the loop waits here, and new
+            // connections queue in the listener instead of each getting a thread
+            // and a buffer of its own.
+            try
+            {
+                await _slots.WaitAsync(token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                try { context.Response.Abort(); } catch { /* ignore */ }
+                break;
+            }
+
+            _ = Task.Run(async () =>
+            {
+                try { await HandleRequestAsync(context).ConfigureAwait(false); }
+                finally { _slots.Release(); }
+            }, CancellationToken.None);
         }
     }
 
@@ -112,19 +158,20 @@ public sealed class IppPrinterServer : IDisposable
     {
         try
         {
-            byte[] body;
-            using (var ms = new MemoryStream())
-            {
-                await context.Request.InputStream.CopyToAsync(ms).ConfigureAwait(false);
-                body = ms.ToArray();
-            }
-
             string method = context.Request.HttpMethod;
             string rawUrl = context.Request.RawUrl ?? "/";
 
+            byte[]? body = await ReadBodyAsync(context.Request, _options.MaxDocumentBytes).ConfigureAwait(false);
+
             IppMessage response;
             string outcome;
-            try
+            if (body is null)
+            {
+                body = Array.Empty<byte>();
+                outcome = $"refused: larger than {_options.MaxDocumentBytes:N0} bytes";
+                response = Failure(0, IppStatus.ClientErrorRequestEntityTooLarge, "The document is too large.");
+            }
+            else try
             {
                 var request = IppReader.Parse(body);
                 outcome = $"IPP {request.Operation} (v{request.VersionMajor}.{request.VersionMinor}, req#{request.RequestId})";
@@ -153,6 +200,22 @@ public sealed class IppPrinterServer : IDisposable
         {
             try { context.Response.OutputStream.Close(); } catch { /* ignore */ }
         }
+    }
+
+    /// <summary>The request body, or null as soon as it grows past <paramref name="limit"/>.</summary>
+    private static async Task<byte[]?> ReadBodyAsync(HttpListenerRequest request, long limit)
+    {
+        if (request.ContentLength64 > limit) return null;
+
+        using var ms = new MemoryStream();
+        var buffer = new byte[81920];
+        int read;
+        while ((read = await request.InputStream.ReadAsync(buffer).ConfigureAwait(false)) > 0)
+        {
+            if (ms.Length + read > limit) return null;
+            ms.Write(buffer, 0, read);
+        }
+        return ms.ToArray();
     }
 
     private IppMessage Dispatch(IppMessage request)
@@ -274,12 +337,17 @@ public sealed class IppPrinterServer : IDisposable
     private IppMessage PrintJob(IppMessage request)
     {
         int jobId = Interlocked.Increment(ref _nextJobId);
-        FinalizeJob(jobId, request, request.Data);
-        return JobResponse(request, jobId, IppJobState.Completed, "job-completed-successfully");
+        return FinalizeJob(jobId, request, request.Data)
+            ? JobResponse(request, jobId, IppJobState.Completed, "job-completed-successfully")
+            : NotStored(request, jobId);
     }
 
     private IppMessage CreateJob(IppMessage request)
     {
+        DropAbandonedJobs();
+        if (_pendingJobs.Count >= _options.MaxPendingJobs)
+            return Failure(request.RequestId, IppStatus.ServerErrorBusy, "Too many jobs are open at once.");
+
         int jobId = Interlocked.Increment(ref _nextJobId);
         _pendingJobs[jobId] = new PendingJob
         {
@@ -294,26 +362,98 @@ public sealed class IppPrinterServer : IDisposable
 
     private IppMessage SendDocument(IppMessage request)
     {
+        DropAbandonedJobs();
         int jobId = request.FindAttribute("job-id")?.AsInt() ?? 0;
         if (jobId == 0 || !_pendingJobs.TryGetValue(jobId, out var pending))
             return NewResponse(request.RequestId, IppStatus.ClientErrorNotFound);
 
-        if (request.Data.Length > 0)
-            pending.Buffer.Write(request.Data, 0, request.Data.Length);
-
         bool lastDocument = request.FindAttribute("last-document") is { } a
                             && a.Values.Count > 0 && a.Values[0] is true;
 
-        if (!lastDocument)
-            return JobResponse(request, jobId, IppJobState.Pending, "none");
+        // The dictionary is thread-safe, the job in it is not: two Send-Documents
+        // for one job would write into the same buffer, and a late one could
+        // land after the job had been finished. One lock per job makes adding,
+        // finishing and dropping it a single step each.
+        byte[] document;
+        lock (pending)
+        {
+            if (pending.Closed)
+                return NewResponse(request.RequestId, IppStatus.ClientErrorNotFound);
 
-        _pendingJobs.TryRemove(jobId, out _);
-        FinalizeJob(jobId, request, pending.Buffer.ToArray(), pending.JobName, pending.UserName,
-                    pending.Sides, pending.ColorMode);
-        return JobResponse(request, jobId, IppJobState.Completed, "job-completed-successfully");
+            if (pending.Buffer.Length + request.Data.Length > _options.MaxDocumentBytes)
+            {
+                Close(jobId, pending);
+                return Failure(request.RequestId, IppStatus.ClientErrorRequestEntityTooLarge, "The document is too large.");
+            }
+
+            if (request.Data.Length > 0)
+                pending.Buffer.Write(request.Data, 0, request.Data.Length);
+            pending.LastActivity = DateTime.UtcNow;
+
+            if (!lastDocument)
+                return JobResponse(request, jobId, IppJobState.Pending, "none");
+
+            document = pending.Buffer.ToArray();
+            Close(jobId, pending);
+        }
+
+        return FinalizeJob(jobId, request, document, pending.JobName, pending.UserName,
+                           pending.Sides, pending.ColorMode)
+            ? JobResponse(request, jobId, IppJobState.Completed, "job-completed-successfully")
+            : NotStored(request, jobId);
     }
 
-    private CapturedJob FinalizeJob(int jobId, IppMessage request, byte[] data,
+    /// <summary>
+    /// Forgets jobs whose sender went quiet. A Create-Job that never gets its
+    /// last document - a client that crashed, a cancelled print - would
+    /// otherwise keep its buffer for as long as the service runs.
+    /// </summary>
+    private void DropAbandonedJobs()
+    {
+        var cutoff = DateTime.UtcNow - _options.PendingJobTimeout;
+        foreach (var (jobId, pending) in _pendingJobs)
+        {
+            lock (pending)
+            {
+                if (!pending.Closed && pending.LastActivity < cutoff)
+                {
+                    Close(jobId, pending);
+                    RequestLog?.Invoke(this, $"job {jobId} dropped: no document for {_options.PendingJobTimeout}");
+                }
+            }
+        }
+    }
+
+    /// <summary>Marks a job finished or dropped and lets go of it. Call with the job's lock held.</summary>
+    private void Close(int jobId, PendingJob pending)
+    {
+        pending.Closed = true;
+        _pendingJobs.TryRemove(jobId, out _);
+        pending.Buffer.Dispose();
+    }
+
+    /// <summary>The answer when the job arrived whole but could not be kept.</summary>
+    private IppMessage NotStored(IppMessage request, int jobId)
+    {
+        var response = Failure(request.RequestId, IppStatus.ServerErrorInternalError,
+                               "The job could not be stored. Nothing was printed.");
+        var job = response.AddGroup(IppTag.JobAttributes);
+        job.Add(new IppAttribute("job-id", IppTag.Integer, jobId));
+        job.Add(new IppAttribute("job-state", IppTag.Enum, (int)IppJobState.Aborted));
+        job.Add(new IppAttribute("job-state-reasons", IppTag.Keyword, "aborted-by-system"));
+        return response;
+    }
+
+    private static IppMessage Failure(int requestId, IppStatus status, string message)
+    {
+        var response = NewResponse(requestId, status);
+        response.FirstGroup(IppTag.OperationAttributes)!
+            .Add(new IppAttribute("status-message", IppTag.TextWithoutLanguage, message));
+        return response;
+    }
+
+    /// <summary>Builds the captured job, stores it, and says whether it was kept.</summary>
+    private bool FinalizeJob(int jobId, IppMessage request, byte[] data,
                                     string? jobName = null, string? userName = null,
                                     string? sides = null, string? colorMode = null)
     {
@@ -342,8 +482,31 @@ public sealed class IppPrinterServer : IDisposable
             }
         }
 
-        JobCaptured?.Invoke(this, captured);
-        return captured;
+        if (StoreJob is { } store)
+        {
+            bool kept;
+            try
+            {
+                kept = store(captured);
+            }
+            catch (Exception ex)
+            {
+                RequestLog?.Invoke(this, $"job {jobId} not stored: {ex.Message}");
+                kept = false;
+            }
+            if (!kept) return false;
+        }
+
+        try
+        {
+            JobCaptured?.Invoke(this, captured);
+        }
+        catch (Exception ex)
+        {
+            // The job is stored; a failing listener does not undo that.
+            RequestLog?.Invoke(this, $"job {jobId}: a JobCaptured handler failed: {ex.Message}");
+        }
+        return true;
     }
 
     private IppMessage JobResponse(IppMessage request, int jobId, IppJobState state, string reason)
@@ -379,6 +542,7 @@ public sealed class IppPrinterServer : IDisposable
     {
         try { StopAsync().GetAwaiter().GetResult(); } catch { /* ignore */ }
         _cts?.Dispose();
+        _slots.Dispose();
         (_listener as IDisposable).Dispose();
     }
 
@@ -400,5 +564,11 @@ public sealed class IppPrinterServer : IDisposable
         public string? Sides { get; init; }
         public string? ColorMode { get; init; }
         public MemoryStream Buffer { get; } = new();
+
+        /// <summary>When the last request for this job arrived; abandoned jobs are dropped after a while.</summary>
+        public DateTime LastActivity { get; set; } = DateTime.UtcNow;
+
+        /// <summary>Finished or dropped; any further Send-Document is refused.</summary>
+        public bool Closed { get; set; }
     }
 }

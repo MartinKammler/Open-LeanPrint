@@ -977,7 +977,42 @@ public partial class MainWindow : Window
 
     // ---------- imposition & preview ----------
 
+    private bool _composing;
+    private bool _recompose;
+
+    /// <summary>
+    /// Re-imposes the pool - one run at a time. A run that has started cannot
+    /// be stopped halfway: composing a PDF has no point at which to give up.
+    /// So instead of starting another next to it, a change during a run only
+    /// notes that one more is needed, and that one starts from the state as it
+    /// is when the first is done. However fast the boxes are typed into, at
+    /// most two runs exist: the one working and the one waiting.
+    /// </summary>
     private async Task RefreshAsync()
+    {
+        if (_composing)
+        {
+            _recompose = true;
+            return;
+        }
+
+        _composing = true;
+        try
+        {
+            do
+            {
+                _recompose = false;
+                await RefreshOnceAsync();
+            }
+            while (_recompose);
+        }
+        finally
+        {
+            _composing = false;
+        }
+    }
+
+    private async Task RefreshOnceAsync()
     {
         _work?.Cancel();
         var cancellation = new CancellationTokenSource();
@@ -1681,7 +1716,9 @@ public partial class MainWindow : Window
         };
         if (dialog.ShowDialog(this) != true) return;
 
-        File.WriteAllBytes(dialog.FileName, _imposed);
+        // Whole or not at all: replacing a PDF somebody chose to overwrite must
+        // not leave half of the new one if the disk fills up.
+        AtomicFile.WriteAllBytes(dialog.FileName, _imposed);
         StatusText.Text = Loc.Format("Status.Saved", Path.GetFileName(dialog.FileName), _imposed.Length);
     }
 

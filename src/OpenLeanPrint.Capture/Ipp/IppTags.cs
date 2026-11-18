@@ -66,8 +66,10 @@ public enum IppStatus : short
     SuccessfulOk = 0x0000,
     ClientErrorBadRequest = 0x0400,
     ClientErrorNotFound = 0x0406,
+    ClientErrorRequestEntityTooLarge = 0x0408,
     ServerErrorInternalError = 0x0500,
     ServerErrorOperationNotSupported = 0x0501,
+    ServerErrorBusy = 0x0507,
 }
 
 /// <summary>IPP job-state values (RFC 8011 §5.3.7).</summary>
@@ -76,6 +78,7 @@ public enum IppJobState
     Pending = 3,
     PendingHeld = 4,
     Processing = 5,
+    Aborted = 8,
     Completed = 9,
 }
 

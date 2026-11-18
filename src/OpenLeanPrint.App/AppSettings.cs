@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using OpenLeanPrint.Core;
 using Path = System.IO.Path;
 
 namespace OpenLeanPrint.App;
@@ -78,17 +79,27 @@ public sealed record AppSettings
                                   Environment.SpecialFolderOption.Create),
         "OpenLeanPrint", "settings.json");
 
+    /// <summary>The previous settings, kept by every save; read when the current file is unreadable.</summary>
+    private static string BackupPath => FilePath + ".bak";
+
     public static AppSettings Load()
     {
-        try
+        foreach (string path in new[] { FilePath, BackupPath })
         {
-            if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
-        }
-        catch (Exception)
-        {
-            // Unreadable or corrupt settings are not worth a startup failure -
-            // fall back to defaults and overwrite them on the next save.
+            try
+            {
+                if (File.Exists(path) &&
+                    JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path)) is { } settings)
+                {
+                    if (path == BackupPath) App.Log("settings.json was unreadable; used the backup");
+                    return settings;
+                }
+            }
+            catch (Exception)
+            {
+                // Corrupt - try the backup, then the defaults. Starting is more
+                // important than any one preference.
+            }
         }
         return new AppSettings();
     }
@@ -97,9 +108,18 @@ public sealed record AppSettings
     {
         try
         {
-            string? directory = Path.GetDirectoryName(FilePath);
-            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOptions));
+            // The file being replaced becomes the backup - but only if it can be
+            // read, so a corrupt file never pushes out the last good copy.
+            if (File.Exists(FilePath))
+            {
+                try
+                {
+                    JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath));
+                    File.Copy(FilePath, BackupPath, overwrite: true);
+                }
+                catch (Exception) { /* keep the backup we have */ }
+            }
+            AtomicFile.WriteAllBytes(FilePath, JsonSerializer.SerializeToUtf8Bytes(this, JsonOptions));
         }
         catch (Exception)
         {

@@ -112,8 +112,11 @@ internal static class Updates
             }
         }
 
+        // The digest is required, not a bonus. GitHub publishes one for every
+        // asset; a release without it is one whose file nothing vouches for, and
+        // the installer is about to run with administrator rights.
         bool sizeOk = update.Size <= 0 || new FileInfo(target).Length == update.Size;
-        bool hashOk = true;
+        bool hashOk = false;
         if (update.Sha256 is not null)
         {
             await using var stream = File.OpenRead(target);

@@ -2,6 +2,7 @@ using System.IO;
 using System.Net.Http;
 using OpenLeanPrint.Capture;
 using OpenLeanPrint.Capture.Server;
+using OpenLeanPrint.Core;
 using Path = System.IO.Path;
 
 namespace OpenLeanPrint.App;
@@ -42,7 +43,9 @@ internal sealed class CaptureService : IDisposable
         if (_server is not null) return;
 
         var server = new IppPrinterServer(new IppPrinterOptions { Port = port });
-        server.JobCaptured += (_, job) => Save(job);
+        // Stored before the print queue is answered: a job that cannot be kept
+        // is reported to Windows as failed rather than as printed.
+        server.StoreJob = Save;
         server.Start();
 
         _server = server;
@@ -88,30 +91,25 @@ internal sealed class CaptureService : IDisposable
         server.Dispose();
     }
 
-    private void Save(CapturedJob job)
+    /// <summary>Keeps the job; false when it could not, which the print queue is then told.</summary>
+    private bool Save(CapturedJob job)
     {
+        string path;
         try
         {
-            Directory.CreateDirectory(CaptureLocations.DefaultFolder);
-            string extension = job.IsPdf ? "pdf" : "bin";
-            string path = Path.Combine(CaptureLocations.DefaultFolder, $"job-{job.JobId:D4}.{extension}");
-
-            // A job id repeats after a restart, so never overwrite one.
-            int suffix = 1;
-            while (File.Exists(path))
-            {
-                path = Path.Combine(CaptureLocations.DefaultFolder,
-                                    $"job-{job.JobId:D4}-{suffix++}.{extension}");
-            }
-
-            File.WriteAllBytes(path, job.Data);
-            JobCaptured?.Invoke(this, path);
+            // A job id repeats after a restart, so the name is taken fresh, and
+            // the file appears whole or not at all.
+            path = AtomicFile.CreateUnique(CaptureLocations.DefaultFolder, $"job-{job.JobId:D4}",
+                                           job.IsPdf ? "pdf" : "bin", job.Data);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Losing one job must not take the service down; the print queue
-            // has already been told the job succeeded.
+            App.Log($"could not store captured job #{job.JobId}: {ex.Message}");
+            return false;
         }
+
+        try { JobCaptured?.Invoke(this, path); } catch (Exception) { /* stored is stored */ }
+        return true;
     }
 
     public void Dispose() => Stop();

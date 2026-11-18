@@ -157,4 +157,144 @@ public class IppServerTests
 
         await server.StopAsync();
     }
+
+    private static async Task<int> CreateJobAsync(IppPrinterOptions options)
+    {
+        var response = await PostAsync(options.HttpPrefix, NewRequest(IppOperation.CreateJob, options.PrinterUri));
+        Assert.Equal(IppStatus.SuccessfulOk, response.Status);
+        return response.FirstGroup(IppTag.JobAttributes)!.Find("job-id")!.AsInt()!.Value;
+    }
+
+    private static IppMessage SendDocument(IppPrinterOptions options, int jobId, byte[] data, bool last)
+    {
+        var send = NewRequest(IppOperation.SendDocument, options.PrinterUri);
+        var op = send.FirstGroup(IppTag.OperationAttributes)!;
+        op.Add(new IppAttribute("job-id", IppTag.Integer, jobId));
+        op.Add(new IppAttribute("document-format", IppTag.MimeMediaType, "application/pdf"));
+        op.Add(new IppAttribute("last-document", IppTag.Boolean, last));
+        send.Data = data;
+        return send;
+    }
+
+    private static IppMessage PrintJobRequest(IppPrinterOptions options, byte[] pdf)
+    {
+        var request = NewRequest(IppOperation.PrintJob, options.PrinterUri);
+        request.FirstGroup(IppTag.OperationAttributes)!
+               .Add(new IppAttribute("document-format", IppTag.MimeMediaType, "application/pdf"));
+        request.Data = pdf;
+        return request;
+    }
+
+    [Fact]
+    public async Task AJobThatCannotBeStored_IsReportedAsFailed_NotAsPrinted()
+    {
+        var options = new IppPrinterOptions { Port = FreePort() };
+        using var server = new IppPrinterServer(options) { StoreJob = _ => throw new IOException("disk full") };
+        bool announced = false;
+        server.JobCaptured += (_, _) => announced = true;
+        server.Start();
+
+        var response = await PostAsync(options.HttpPrefix, PrintJobRequest(options, TestPdfs.WithPages((595, 842))));
+
+        Assert.Equal(IppStatus.ServerErrorInternalError, response.Status);
+        Assert.Equal((int)IppJobState.Aborted, response.FirstGroup(IppTag.JobAttributes)!.Find("job-state")!.AsInt());
+        Assert.False(announced);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task AStoredJob_IsAnnouncedAfterwards()
+    {
+        var options = new IppPrinterOptions { Port = FreePort() };
+        var order = new List<string>();
+        using var server = new IppPrinterServer(options) { StoreJob = _ => { lock (order) order.Add("stored"); return true; } };
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        server.JobCaptured += (_, _) => { lock (order) order.Add("announced"); tcs.TrySetResult(); };
+        server.Start();
+
+        var response = await PostAsync(options.HttpPrefix, PrintJobRequest(options, TestPdfs.WithPages((595, 842))));
+        await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(IppStatus.SuccessfulOk, response.Status);
+        Assert.Equal(new[] { "stored", "announced" }, order);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task ADocumentAboveTheLimit_IsRefused_AndTheServerKeepsAnswering()
+    {
+        var options = new IppPrinterOptions { Port = FreePort(), MaxDocumentBytes = 4096 };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        var big = PrintJobRequest(options, new byte[8192]);
+        var response = await PostAsync(options.HttpPrefix, big);
+        Assert.Equal(IppStatus.ClientErrorRequestEntityTooLarge, response.Status);
+
+        var after = await PostAsync(options.HttpPrefix, NewRequest(IppOperation.GetPrinterAttributes, options.PrinterUri));
+        Assert.Equal(IppStatus.SuccessfulOk, after.Status);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task SendDocuments_AddingUpPastTheLimit_EndTheJob()
+    {
+        var options = new IppPrinterOptions { Port = FreePort(), MaxDocumentBytes = 6000 };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        int jobId = await CreateJobAsync(options);
+        Assert.Equal(IppStatus.SuccessfulOk, (await PostAsync(options.HttpPrefix, SendDocument(options, jobId, new byte[4000], last: false))).Status);
+        Assert.Equal(IppStatus.ClientErrorRequestEntityTooLarge, (await PostAsync(options.HttpPrefix, SendDocument(options, jobId, new byte[4000], last: false))).Status);
+        // The job is gone, not half-kept.
+        Assert.Equal(IppStatus.ClientErrorNotFound, (await PostAsync(options.HttpPrefix, SendDocument(options, jobId, new byte[10], last: true))).Status);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task AnAbandonedJob_IsDroppedAfterItsTimeout()
+    {
+        var options = new IppPrinterOptions { Port = FreePort(), PendingJobTimeout = TimeSpan.FromMilliseconds(200) };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        int jobId = await CreateJobAsync(options);
+        await Task.Delay(500);
+
+        var response = await PostAsync(options.HttpPrefix, SendDocument(options, jobId, TestPdfs.WithPages((595, 842)), last: true));
+        Assert.Equal(IppStatus.ClientErrorNotFound, response.Status);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task TooManyOpenJobs_MakeThePrinterBusy_NotTheServiceFall()
+    {
+        var options = new IppPrinterOptions { Port = FreePort(), MaxPendingJobs = 2 };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        await CreateJobAsync(options);
+        await CreateJobAsync(options);
+        var third = await PostAsync(options.HttpPrefix, NewRequest(IppOperation.CreateJob, options.PrinterUri));
+
+        Assert.Equal(IppStatus.ServerErrorBusy, third.Status);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task ManyJobsAtOnce_AreAllCaptured_EachOnce()
+    {
+        var options = new IppPrinterOptions { Port = FreePort() };
+        var stored = new System.Collections.Concurrent.ConcurrentBag<int>();
+        using var server = new IppPrinterServer(options) { StoreJob = job => { stored.Add(job.JobId); return true; } };
+        server.Start();
+
+        byte[] pdf = TestPdfs.WithPages((595, 842));
+        var responses = await Task.WhenAll(Enumerable.Range(0, 40)
+            .Select(_ => PostAsync(options.HttpPrefix, PrintJobRequest(options, pdf))));
+
+        Assert.All(responses, r => Assert.Equal(IppStatus.SuccessfulOk, r.Status));
+        Assert.Equal(40, stored.Distinct().Count());
+        await server.StopAsync();
+    }
 }

@@ -53,7 +53,9 @@ internal sealed class CaptureServiceWorker : BackgroundService
                 Port = _settings.Port,
             });
 
-            server.JobCaptured += (_, job) =>
+            // Stored before the print queue hears anything: if the job cannot be
+            // kept, Windows is told it failed instead of that it was printed.
+            server.StoreJob = job =>
             {
                 try
                 {
@@ -61,14 +63,23 @@ internal sealed class CaptureServiceWorker : BackgroundService
                     Log($"Captured job #{job.JobId} from {job.UserName ?? "(unknown user)"}, " +
                         $"{job.Data.Length:N0} bytes, sides={job.Sides ?? "(unset)"}, " +
                         $"colour={job.ColorMode ?? "(unset)"} -> {Path.GetFileName(path)}");
-                    Prune();
                 }
                 catch (Exception ex)
                 {
-                    // The print queue has already been told the job succeeded;
-                    // losing one job must not take the service down.
-                    Log($"Could not save job #{job.JobId}: {ex.Message}");
+                    Log($"Could not save job #{job.JobId}, reported it as failed: {ex.Message}");
+                    return false;
                 }
+
+                try { Prune(); } catch (Exception) { /* tidying up is not the job */ }
+                return true;
+            };
+            server.RequestLog += (_, line) =>
+            {
+                // Only what went wrong; every Get-Printer-Attributes would drown the log.
+                if (line.Contains("dropped", StringComparison.Ordinal) ||
+                    line.Contains("not stored", StringComparison.Ordinal) ||
+                    line.Contains("refused", StringComparison.Ordinal))
+                    Log(line);
             };
 
             server.Start();

@@ -61,7 +61,13 @@ static void RunConsole(CaptureSettings settings)
             Console.WriteLine($"    parse  : FAILED ({error})");
         }
 
+    };
+
+    // Saved before the client is answered, so a failure reaches the print queue.
+    server.StoreJob = job =>
+    {
         Console.WriteLine($"    saved  : {CapturedJobWriter.Save(job, settings.OutputFolder)}");
+        return true;
     };
 
     server.Start();

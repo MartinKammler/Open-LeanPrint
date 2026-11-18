@@ -4,6 +4,44 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] — 2026-11-18
+
+Robustness, after a code review that read the capture path end to end. Each
+change below closes a way for a printed document to go missing or for the
+service to be worn down.
+
+### Fixed
+
+- **A job that could not be saved was reported to Windows as printed.** The
+  service answered the print queue first and saved afterwards, so a full disk or
+  a locked folder lost the document while the queue said "done". Saving is now
+  part of accepting the job: only a stored job is confirmed, and one that cannot
+  be stored is reported as failed, so Windows shows a print error instead.
+- **Captured jobs appear whole or not at all.** They are written to a
+  temporary file, flushed to disk and renamed into place, so a crash or a full
+  disk cannot leave half a PDF for the app to pick up. The rename never replaces
+  an existing file, so two jobs can no longer race for one name. The app's
+  settings are written the same way, and the last readable copy is kept as
+  `settings.json.bak` and used if the file is ever unreadable.
+- **The capture service has limits.** A request or a job larger than 1 GB is
+  refused, a job begun with Create-Job and never finished is dropped after 30
+  minutes, at most 32 such jobs are open at once (beyond that the printer
+  reports itself busy), and at most 8 requests are worked on at the same time.
+  Before, anything on the machine could make the service hold arbitrary amounts
+  of memory. Two Send-Documents for the same job no longer write into one
+  buffer at once.
+- **The folder watcher no longer misses jobs.** It compares the folder with
+  what it has handled every 30 seconds and whenever Windows reports that file
+  events were lost, and a job still locked when its wait ran out is tried again
+  (three times) instead of only at the next start.
+- **Fast typing no longer piles up preview work.** Changes during an imposition
+  queue one more run instead of starting another beside it.
+- **Updates require the checksum.** An installer GitHub publishes no SHA-256
+  for is not run.
+- **Removing the virtual printer removes only it** - a queue named
+  Open-LeanPrint… or OpenLeanPrint…, not any printer whose name contains
+  "LeanPrint".
+
 ## [0.5.3] — 2026-11-18
 
 ### Added

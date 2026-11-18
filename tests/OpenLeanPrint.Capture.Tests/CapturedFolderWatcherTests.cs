@@ -35,6 +35,57 @@ public class CapturedFolderWatcherTests : IDisposable
     }
 
     [Fact]
+    public void AFileThatTimedOut_IsTriedAgain_AndArrivesOnceItIsFree()
+    {
+        string path = Path.Combine(_folder, "job-0001.pdf");
+        var locked = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        locked.Write(new byte[64]);
+        locked.Flush();
+
+        using var watcher = new CapturedFolderWatcher(_folder)
+        {
+            CompletionTimeout = TimeSpan.FromMilliseconds(400),
+            ReconcileInterval = TimeSpan.FromMilliseconds(300),
+            MaxAttempts = 10,
+        };
+        bool gaveUp = false;
+        watcher.JobTimedOut += (_, _) => gaveUp = true;
+
+        var arrived = Collect(watcher, 1, () =>
+        {
+            watcher.Start(includeExisting: true);
+            // Held past the first wait, then let go: only a retry can find it now.
+            Thread.Sleep(900);
+            locked.Dispose();
+        });
+
+        Assert.Single(arrived);
+        Assert.False(gaveUp);
+    }
+
+    [Fact]
+    public void AFileThatNeverSettles_IsGivenUpAfterItsAttempts()
+    {
+        string path = Path.Combine(_folder, "job-0002.pdf");
+        using var locked = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        locked.Write(new byte[64]);
+        locked.Flush();
+
+        using var watcher = new CapturedFolderWatcher(_folder)
+        {
+            CompletionTimeout = TimeSpan.FromMilliseconds(200),
+            ReconcileInterval = TimeSpan.FromMilliseconds(150),
+            MaxAttempts = 2,
+        };
+        using var timedOut = new ManualResetEventSlim(false);
+        watcher.JobTimedOut += (_, _) => timedOut.Set();
+
+        watcher.Start(includeExisting: true);
+
+        Assert.True(timedOut.Wait(TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
     public void RaisesJobArrived_ForANewFile()
     {
         using var watcher = new CapturedFolderWatcher(_folder);

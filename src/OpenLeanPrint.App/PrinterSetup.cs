@@ -64,9 +64,14 @@ internal static class PrinterSetup
         return RunElevated($"Add-Printer -IppURL '{url}'");
     }
 
-    /// <summary>Removes every queue whose name mentions OpenLeanPrint.</summary>
+    /// <summary>
+    /// Removes this app's queue - under its current name or the one from before
+    /// the rename - and nothing else. Finding it is generous (any name with
+    /// LeanPrint in it), removing is not: a printer that merely mentions the
+    /// word is somebody else's and stays.
+    /// </summary>
     public static bool Unregister() =>
-        RunElevated($"Get-Printer | Where-Object Name -like '*{NameFragment}*' | Remove-Printer");
+        RunElevated("Get-Printer | Where-Object { $_.Name -like 'Open-LeanPrint*' -or $_.Name -like 'OpenLeanPrint*' } | Remove-Printer");
 
     private static bool RunElevated(string command)
     {
