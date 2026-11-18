@@ -4,7 +4,17 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] — 2026-11-18
+
+The first release of this fork of [Open-LeanPrint](https://github.com/azitc-ac/Open-LeanPrint) by Alexander
+Zarenko. Everything below 0.5.0 is the original project's history.
+
+### Changed
+
+- **A fork now.** Links, the installer's publisher and "more information" entry
+  point here. The name, the printer and the installer's upgrade code stay the
+  same, so installing this over the original replaces it rather than adding a
+  second copy.
 
 ### Added
 

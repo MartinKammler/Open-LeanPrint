@@ -28,7 +28,7 @@
     keeps it readable and keeps two releases from ever colliding.
   -->
   <Package Name="Open-LeanPrint"
-           Manufacturer="Alexander Zarenko"
+           Manufacturer="Martin Kammler"
            Version="$(ProductVersion)"
            ProductCode="$(ProductCode)"
            UpgradeCode="6f4c6e50-7072-696e-7420-4f70656e4c50"
@@ -42,7 +42,7 @@
 
     <Icon Id="AppIcon" SourceFile="..\src\OpenLeanPrint.App\Assets\OpenLeanPrint.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/azitc-ac/Open-LeanPrint" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/MartinKammler/Open-LeanPrint" />
     <Property Id="ARPNOREPAIR" Value="1" />
 
 

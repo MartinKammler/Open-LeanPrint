@@ -56,5 +56,5 @@ Open-LeanPrint opens a connection.
 ## Questions
 
 Open an issue at
-[github.com/azitc-ac/Open-LeanPrint](https://github.com/azitc-ac/Open-LeanPrint/issues),
+[github.com/MartinKammler/Open-LeanPrint](https://github.com/MartinKammler/Open-LeanPrint/issues),
 or for anything security-related see [SECURITY.md](SECURITY.md).

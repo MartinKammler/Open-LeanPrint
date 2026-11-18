@@ -9,10 +9,20 @@
 A free, open-source alternative to FinePrint. Runs on Windows on ARM as happily
 as on Intel.
 
-[![CI](https://github.com/azitc-ac/Open-LeanPrint/actions/workflows/ci.yml/badge.svg)](https://github.com/azitc-ac/Open-LeanPrint/actions/workflows/ci.yml)
+[![CI](https://github.com/MartinKammler/Open-LeanPrint/actions/workflows/ci.yml/badge.svg)](https://github.com/MartinKammler/Open-LeanPrint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
+
+> **This is a fork.** Open-LeanPrint was created by **Alexander Zarenko** —
+> the original lives at [azitc-ac/Open-LeanPrint](https://github.com/azitc-ac/Open-LeanPrint). Thank you for a
+> genuinely good tool and for releasing it under the MIT licence, which is what
+> makes a fork like this possible.
+>
+> This fork adds what I wanted for my own use — so far a **dark mode** and a
+> switch for the tray balloon after printing — and will keep going its own way.
+> What changed, and since when, is in the [changelog](CHANGELOG.md). Problems
+> with this fork belong here, not upstream.
 
 **Install the `.msi` and print.** Setting up is the installation: it creates its
 own printer along the way, and from then on *Open-LeanPrint* sits in every print
@@ -76,7 +86,7 @@ Plus:
 
 ## Getting started
 
-1. Download the installer from the [latest release](https://github.com/azitc-ac/Open-LeanPrint/releases/latest)
+1. Download the installer from the [latest release](https://github.com/MartinKammler/Open-LeanPrint/releases/latest)
    and run it.
 2. Print something — anything — to **Open-LeanPrint**.
 3. The window comes up with it. Pick a layout, press **Print and close**.
@@ -93,11 +103,10 @@ check, no server. It does handle your documents, because that is what it is for:
 
 ### Code signing
 
-Free code signing is provided by [SignPath.io](https://signpath.io/), with a
-certificate from the [SignPath Foundation](https://signpath.org/). The installers
-are built by [a GitHub Actions workflow](.github/workflows/release.yml) from the
-tagged commit and signed from there, so a package can be traced back to the
-source it came from.
+The installers of this fork are **not signed**, so Windows SmartScreen will ask
+before running one. The original project's releases are signed by its author;
+that signature does not carry over to a fork, which is exactly what a signature
+is for.
 
 > **While that certificate is being arranged**, releases carry a self-signed one
 > instead. Windows will not recognise it until you say it should — the release
@@ -185,7 +194,7 @@ are especially useful, since every driver has its own opinions.
 
 ## Licence
 
-[MIT](LICENSE) © Alexander Zarenko.
+[MIT](LICENSE) © Alexander Zarenko (original), Martin Kammler (this fork).
 
 PDF rendering uses [PDFium](https://pdfium.googlesource.com/pdfium/) (BSD) via
 [PDFtoImage](https://github.com/sungaila/PDFtoImage) (MIT), composition uses
