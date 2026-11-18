@@ -21,6 +21,10 @@ internal sealed class TrayPresence : IDisposable
     private readonly WinForms.ContextMenuStrip _menu;
     private readonly WinForms.ToolStripMenuItem _appearanceItem;
     private readonly Dictionary<ThemePreference, WinForms.ToolStripMenuItem> _themeItems = new();
+    private readonly WinForms.ToolStripMenuItem _languageItem;
+    private readonly Dictionary<LanguagePreference, WinForms.ToolStripMenuItem> _languageItems = new();
+    private readonly WinForms.ToolStripMenuItem _showItem;
+    private readonly WinForms.ToolStripMenuItem _exitItem;
     private readonly WinForms.ToolStripMenuItem _hideNoticeItem;
     private bool _suppressCollectEvent;
     private bool _suppressPopUpEvent;
@@ -28,16 +32,16 @@ internal sealed class TrayPresence : IDisposable
 
     public TrayPresence()
     {
-        var showItem = new WinForms.ToolStripMenuItem("Show Open-LeanPrint");
+        var showItem = _showItem = new WinForms.ToolStripMenuItem();
         showItem.Click += (_, _) => ShowRequested?.Invoke(this, EventArgs.Empty);
 
-        _collectItem = new WinForms.ToolStripMenuItem("Collect captured jobs") { CheckOnClick = true };
+        _collectItem = new WinForms.ToolStripMenuItem { CheckOnClick = true };
         _collectItem.CheckedChanged += (_, _) =>
         {
             if (!_suppressCollectEvent) CollectingChanged?.Invoke(this, _collectItem.Checked);
         };
 
-        _popUpItem = new WinForms.ToolStripMenuItem("Show the window when a job arrives") { CheckOnClick = true };
+        _popUpItem = new WinForms.ToolStripMenuItem { CheckOnClick = true };
         _popUpItem.CheckedChanged += (_, _) =>
         {
             if (!_suppressPopUpEvent) ShowOnCaptureChanged?.Invoke(this, _popUpItem.Checked);
@@ -45,26 +49,39 @@ internal sealed class TrayPresence : IDisposable
 
         // Radio-style: the one ticked is what is in force. Ticked here rather
         // than with CheckOnClick, so clicking the current choice cannot untick it.
-        _appearanceItem = new WinForms.ToolStripMenuItem("Appearance");
-        foreach (var (preference, label) in new[]
-                 {
-                     (ThemePreference.System, "Same as Windows"),
-                     (ThemePreference.Light, "Light"),
-                     (ThemePreference.Dark, "Dark"),
-                 })
+        _appearanceItem = new WinForms.ToolStripMenuItem();
+        foreach (var preference in Enum.GetValues<ThemePreference>())
         {
-            var item = new WinForms.ToolStripMenuItem(label);
+            var item = new WinForms.ToolStripMenuItem();
             item.Click += (_, _) => ThemeChosen?.Invoke(this, preference);
             _themeItems[preference] = item;
             _appearanceItem.DropDownItems.Add(item);
         }
-        _hideNoticeItem = new WinForms.ToolStripMenuItem("Tell me when the window goes to the tray") { CheckOnClick = true };
+        _hideNoticeItem = new WinForms.ToolStripMenuItem { CheckOnClick = true };
         _hideNoticeItem.CheckedChanged += (_, _) =>
         {
             if (!_suppressHideNoticeEvent) NoticeOnHideChanged?.Invoke(this, _hideNoticeItem.Checked);
         };
 
-        var exitItem = new WinForms.ToolStripMenuItem("Exit");
+        // Each language is named in itself: someone who cannot read the current
+        // interface still has to find their way back to one they can.
+        _languageItem = new WinForms.ToolStripMenuItem();
+        foreach (var preference in Enum.GetValues<LanguagePreference>())
+        {
+            var item = new WinForms.ToolStripMenuItem(preference switch
+            {
+                LanguagePreference.English => "English",
+                LanguagePreference.German => "Deutsch",
+                LanguagePreference.French => "Français",
+                LanguagePreference.Spanish => "Español",
+                _ => string.Empty, // "Same as Windows", in the current language - see Relabel
+            });
+            item.Click += (_, _) => LanguageChosen?.Invoke(this, preference);
+            _languageItems[preference] = item;
+            _languageItem.DropDownItems.Add(item);
+        }
+
+        var exitItem = _exitItem = new WinForms.ToolStripMenuItem();
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
         var menu = _menu = new WinForms.ContextMenuStrip();
@@ -74,6 +91,7 @@ internal sealed class TrayPresence : IDisposable
         menu.Items.Add(_popUpItem);
         menu.Items.Add(_hideNoticeItem);
         menu.Items.Add(_appearanceItem);
+        menu.Items.Add(_languageItem);
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(exitItem);
 
@@ -85,6 +103,32 @@ internal sealed class TrayPresence : IDisposable
             ContextMenuStrip = menu,
         };
         _icon.DoubleClick += (_, _) => ShowRequested?.Invoke(this, EventArgs.Empty);
+        Relabel();
+    }
+
+    /// <summary>Writes the menu's texts in the language in force.</summary>
+    public void Relabel()
+    {
+        _showItem.Text = Loc.Get("Tray.Show");
+        _collectItem.Text = Loc.Get("Collect");
+        _popUpItem.Text = Loc.Get("Tray.PopUp");
+        _hideNoticeItem.Text = Loc.Get("Tray.NoticeOnHide");
+        _appearanceItem.Text = Loc.Get("Tray.Appearance");
+        _themeItems[ThemePreference.System].Text = Loc.Get("Tray.SameAsWindows");
+        _themeItems[ThemePreference.Light].Text = Loc.Get("Tray.Light");
+        _themeItems[ThemePreference.Dark].Text = Loc.Get("Tray.Dark");
+        _languageItem.Text = Loc.Get("Tray.Language");
+        _languageItems[LanguagePreference.System].Text = Loc.Get("Tray.SameAsWindows");
+        _exitItem.Text = Loc.Get("Tray.Exit");
+    }
+
+    /// <summary>The user picked a language.</summary>
+    public event EventHandler<LanguagePreference>? LanguageChosen;
+
+    /// <summary>Ticks the current language choice.</summary>
+    public void SetLanguage(LanguagePreference preference)
+    {
+        foreach (var (choice, item) in _languageItems) item.Checked = choice == preference;
     }
 
     /// <summary>The user asked for the window back.</summary>
@@ -109,7 +153,7 @@ internal sealed class TrayPresence : IDisposable
 
         // The tray menu is WinForms, outside WPF's resources, so it is coloured
         // here. Left alone it would be the one light thing in a dark app.
-        foreach (var strip in new WinForms.ToolStrip[] { _menu, _appearanceItem.DropDown })
+        foreach (var strip in new WinForms.ToolStrip[] { _menu, _appearanceItem.DropDown, _languageItem.DropDown })
         {
             strip.Renderer = dark ? new DarkMenuRenderer() : new WinForms.ToolStripProfessionalRenderer();
             strip.ForeColor = dark ? DarkMenuColors.Text : Drawing.SystemColors.MenuText;

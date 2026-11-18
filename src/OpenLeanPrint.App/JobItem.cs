@@ -40,9 +40,9 @@ public sealed class JobItem : INotifyPropertyChanged
     {
         get
         {
-            string pages = PageCount == 1 ? "1 page" : $"{PageCount} pages";
-            if (!_pages.IsAll) pages += $" · printing {_pages}";
-            if (Rotations.Count > 0) pages += $" · {Rotations.Count} turned";
+            string pages = Loc.Count("Job.Pages", PageCount);
+            if (!_pages.IsAll) pages += Loc.Format("Job.Printing", _pages);
+            if (Rotations.Count > 0) pages += Loc.Format("Job.Turned", Rotations.Count);
             return pages;
         }
     }

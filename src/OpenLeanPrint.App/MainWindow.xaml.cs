@@ -36,18 +36,18 @@ public partial class MainWindow : Window
 
     private static readonly string[] Papers = { "A4", "A5", "A3", "A6", "Letter", "Legal", "Tabloid" };
 
-    /// <summary>One entry in the "Sides" box; ToString is what the box shows.</summary>
-    private sealed record DuplexChoice(string Label, DuplexMode Mode)
+    /// <summary>One entry in the "Sides" box; ToString is what the box shows, in the language in force.</summary>
+    private sealed record DuplexChoice(string Key, DuplexMode Mode)
     {
-        public override string ToString() => Label;
+        public override string ToString() => Loc.Get(Key);
     }
 
     private static readonly DuplexChoice[] DuplexChoices =
     {
-        new("Printer default", DuplexMode.Default),
-        new("Single-sided", DuplexMode.Simplex),
-        new("Two-sided, long edge", DuplexMode.LongEdge),
-        new("Two-sided, short edge", DuplexMode.ShortEdge),
+        new("Duplex.Default", DuplexMode.Default),
+        new("Duplex.Simplex", DuplexMode.Simplex),
+        new("Duplex.Long", DuplexMode.LongEdge),
+        new("Duplex.Short", DuplexMode.ShortEdge),
     };
 
     private readonly ObservableCollection<JobItem> _jobs = new();
@@ -131,6 +131,8 @@ public partial class MainWindow : Window
         _tray.CollectingChanged += (_, collecting) => Dispatcher.Invoke(() => SetCollecting(collecting));
         _tray.ShowOnCaptureChanged += (_, show) => Dispatcher.Invoke(() => SetShowOnCapture(show));
         _tray.ThemeChosen += (_, preference) => Dispatcher.Invoke(() => SetTheme(preference));
+        _tray.LanguageChosen += (_, preference) => Dispatcher.Invoke(() => SetLanguage(preference));
+        Loc.Changed += (_, _) => RefreshTexts();
 
         ThemeManager.Track(this);
         // Covers Windows switching on its own while "Same as Windows" is chosen.
@@ -152,7 +154,7 @@ public partial class MainWindow : Window
         // because the installer started the app and handed it its own token.
         if (App.RunningElevated)
             Loaded += (_, _) => StatusText.Text =
-                "Running as administrator. Nothing here needs that - close it and start it normally.";
+                Loc.Get("Status.Elevated");
 
         // "OpenLeanPrint a.pdf b.pdf" (or "Open with…") starts with a filled pool.
         var startupFiles = Environment.GetCommandLineArgs().Skip(1)
@@ -167,6 +169,7 @@ public partial class MainWindow : Window
         _printerSetupOffered = settings.PrinterSetupOffered;
         SetShowOnCapture(settings.ShowOnCapture);
         SetTheme(ThemeManager.TryParse(settings.Theme, out var theme) ? theme : ThemePreference.System);
+        SetLanguage(Loc.TryParse(settings.Language, out var language) ? language : LanguagePreference.System);
         SetNoticeOnHide(settings.NoticeOnHide);
         _booklet = settings.Booklet;
         _rows = Math.Max(1, settings.Rows);
@@ -211,6 +214,7 @@ public partial class MainWindow : Window
         CollectCapturedJobs = CollectToggle.IsChecked == true,
         ShowOnCapture = _showOnCapture,
         Theme = ThemeManager.Preference.ToString(),
+        Language = Loc.Preference.ToString(),
         NoticeOnHide = _noticeOnHide,
     };
 
@@ -235,8 +239,7 @@ public partial class MainWindow : Window
             e.Cancel = true;
             Hide();
             if (_noticeOnHide)
-                _tray.Notify("Still collecting",
-                             "The pool is empty and Open-LeanPrint keeps collecting. Double-click the tray icon to bring it back.");
+                _tray.Notify(Loc.Get("Balloon.StillCollecting"), Loc.Get("Balloon.StillCollecting.Text"));
             return;
         }
         base.OnClosing(e);
@@ -372,7 +375,7 @@ public partial class MainWindow : Window
             }
             catch (Exception ex)
             {
-                StatusText.Text = $"Could not watch {folder}: {ex.Message}";
+                StatusText.Text = Loc.Format("Status.WatchFailed", folder, ex.Message);
             }
         }
 
@@ -384,19 +387,19 @@ public partial class MainWindow : Window
         try
         {
             _service.Start();
-            StatusText.Text = $"Listening for print jobs on port {_service.Port}.";
+            StatusText.Text = Loc.Format("Status.Listening", _service.Port);
         }
         catch (Exception)
         {
             // Normally the Windows service already owns the port - then it does
             // the listening and the watchers feed the pool.
             StatusText.Text = PrinterSetup.IsCaptureServiceRunning()
-                ? "Collecting jobs from the Open-LeanPrint service."
-                : $"Port {CaptureService.DefaultPort} is in use by something else; watching the capture folders.";
+                ? Loc.Get("Status.FromService")
+                : Loc.Format("Status.PortBusy", CaptureService.DefaultPort);
         }
 
         if (skipped > 0)
-            StatusText.Text += $" {skipped} older captured jobs were left in the folder.";
+            StatusText.Text += Loc.Format("Status.Skipped", skipped);
     }
 
     /// <summary>
@@ -429,6 +432,28 @@ public partial class MainWindow : Window
     {
         _showOnCapture = show;
         _tray.SetShowOnCapture(show);
+    }
+
+    /// <summary>Single entry point, so the tray menu and this cannot drift apart.</summary>
+    private void SetLanguage(LanguagePreference preference)
+    {
+        Loc.Apply(preference);
+        _tray.SetLanguage(preference);
+    }
+
+    /// <summary>
+    /// Rewrites what code put on screen. XAML follows a change of language on
+    /// its own; these are set from code and would otherwise keep the old one
+    /// until something happened to touch them. A status message that reported
+    /// an event stays as it was written - it is history, not a label.
+    /// </summary>
+    private void RefreshTexts()
+    {
+        UpdatePrinterSetupButton();
+        DuplexBox.Items.Refresh();
+        foreach (var job in _jobs) job.NotifySummaryChanged();
+        UpdateControls();
+        _tray.Relabel();
     }
 
     /// <summary>Single entry point, so the tray menu and this cannot drift apart.</summary>
@@ -472,7 +497,7 @@ public partial class MainWindow : Window
         DiscardCapturedFile(full);
 
         if (_showOnCapture && !wasWaiting) RestoreFromTray();
-        else if (!IsVisible) _tray.Notify("Job collected", Path.GetFileName(path));
+        else if (!IsVisible) _tray.Notify(Loc.Get("Balloon.JobCollected"), Path.GetFileName(path));
     }
 
     /// <summary>
@@ -538,8 +563,8 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Add PDFs to the job pool",
-            Filter = "PDF documents (*.pdf)|*.pdf|All files (*.*)|*.*",
+            Title = Loc.Get("Dialog.AddTitle"),
+            Filter = Loc.Get("Dialog.PdfFilterAll"),
             Multiselect = true,
         };
         if (dialog.ShowDialog(this) != true) return;
@@ -570,7 +595,7 @@ public partial class MainWindow : Window
         }
 
         if (failed.Count > 0)
-            MessageBox.Show(this, string.Join(Environment.NewLine, failed), "Could not add every file",
+            MessageBox.Show(this, string.Join(Environment.NewLine, failed), Loc.Get("Dialog.AddFailed"),
                             MessageBoxButton.OK, MessageBoxImage.Warning);
 
         if (JobList.SelectedIndex < 0 && _jobs.Count > 0) JobList.SelectedIndex = 0;
@@ -829,7 +854,7 @@ public partial class MainWindow : Window
             GutterY = gutter,
         };
 
-        StatusText.Text = "Imposing…";
+        StatusText.Text = Loc.Get("Status.Imposing");
         try
         {
             var (imposed, sheets, layout) = await Task.Run(() =>
@@ -911,24 +936,24 @@ public partial class MainWindow : Window
         int pageNumber = hit.Source.PageIndex + 1;
 
         var menu = new ContextMenu { PlacementTarget = PreviewImage };
-        var remove = new MenuItem { Header = $"Remove page {pageNumber} of {job.Name}" };
+        var remove = new MenuItem { Header = Loc.Format("PageMenu.Remove", pageNumber, job.Name) };
         remove.Click += (_, _) => RemovePage(job, pageNumber);
         menu.Items.Add(remove);
 
-        var rotate = new MenuItem { Header = $"Turn page {pageNumber} by 90°" };
+        var rotate = new MenuItem { Header = Loc.Format("PageMenu.Turn", pageNumber) };
         rotate.Click += (_, _) => RotatePage(job, pageNumber, 90);
         menu.Items.Add(rotate);
 
         if (job.Rotations.ContainsKey(pageNumber))
         {
-            var straighten = new MenuItem { Header = $"Put page {pageNumber} back upright" };
+            var straighten = new MenuItem { Header = Loc.Format("PageMenu.Upright", pageNumber) };
             straighten.Click += (_, _) => RotatePage(job, pageNumber, 0, absolute: true);
             menu.Items.Add(straighten);
         }
 
         if (!job.Pages.IsAll)
         {
-            var restore = new MenuItem { Header = $"Restore all pages of {job.Name}" };
+            var restore = new MenuItem { Header = Loc.Format("PageMenu.Restore", job.Name) };
             restore.Click += (_, _) => SetJobPages(job, PageSelection.All);
             menu.Items.Add(restore);
         }
@@ -968,7 +993,7 @@ public partial class MainWindow : Window
             .Sum(other => Enumerable.Range(1, other.PageCount).Count(other.Pages.Includes));
         if (remaining == 0)
         {
-            StatusText.Text = "That is the last page left - remove the job instead.";
+            StatusText.Text = Loc.Get("Status.LastPage");
             return;
         }
 
@@ -1032,7 +1057,7 @@ public partial class MainWindow : Window
         string name = ProfileBox.Text.Trim();
         if (name.Length == 0)
         {
-            StatusText.Text = "Type a name for the profile first.";
+            StatusText.Text = Loc.Get("Status.ProfileNameNeeded");
             return;
         }
 
@@ -1058,7 +1083,7 @@ public partial class MainWindow : Window
         else _profiles.Add(profile);
 
         ProfileBox.SelectedItem = profile;
-        StatusText.Text = $"Saved the profile “{name}”.";
+        StatusText.Text = Loc.Format("Status.ProfileSaved", name);
     }
 
     private void DeleteProfile_Click(object sender, RoutedEventArgs e)
@@ -1067,7 +1092,7 @@ public partial class MainWindow : Window
 
         _profiles.Remove(profile);
         ProfileBox.Text = string.Empty;
-        StatusText.Text = $"Deleted the profile “{profile.Name}”.";
+        StatusText.Text = Loc.Format("Status.ProfileDeleted", profile.Name);
     }
 
     // ---------- the virtual printer ----------
@@ -1085,8 +1110,8 @@ public partial class MainWindow : Window
             if (PrinterSetup.IsRegistered())
             {
                 StatusText.Text = PrinterSetup.Unregister()
-                    ? "Removed the Open-LeanPrint printer."
-                    : "The printer was not removed.";
+                    ? Loc.Get("Status.PrinterRemoved")
+                    : Loc.Get("Status.PrinterNotRemoved");
             }
             else
             {
@@ -1130,18 +1155,18 @@ public partial class MainWindow : Window
             SetCollecting(true);
             if (!_service.IsRunning || !CaptureService.IsAnswering(_service.Port))
             {
-                StatusText.Text = "Nothing is listening for print jobs, so the printer cannot be created yet.";
+                StatusText.Text = Loc.Get("Status.NoListener");
                 return;
             }
             port = _service.Port;
         }
 
-        StatusText.Text = "Creating the printer…";
+        StatusText.Text = Loc.Get("Status.CreatingPrinter");
         StatusText.Dispatcher.Invoke(() => { }, DispatcherPriority.Render);
 
         StatusText.Text = PrinterSetup.Register(port)
-            ? "The Open-LeanPrint printer is ready - print to it from any application."
-            : "The printer was not created. Administrator rights are needed for that one step.";
+            ? Loc.Get("Status.PrinterReady")
+            : Loc.Get("Status.PrinterNotCreated");
     }
 
     /// <summary>
@@ -1169,10 +1194,8 @@ public partial class MainWindow : Window
         App.Log("no virtual printer found; asking whether to create one");
         var answer = MessageBox.Show(
             this,
-            "Open-LeanPrint can add its virtual printer now, so you can print into it from any " +
-            "application.\n\nWindows will ask for administrator rights once - creating a printer " +
-            "queue requires them.",
-            "Set up the virtual printer",
+            Loc.Get("Dialog.SetupText"),
+            Loc.Get("Dialog.SetupTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -1183,8 +1206,8 @@ public partial class MainWindow : Window
 
     private void UpdatePrinterSetupButton() =>
         PrinterSetupButton.Content = PrinterSetup.IsRegistered()
-            ? "Remove virtual printer"
-            : "Set up virtual printer…";
+            ? Loc.Get("PrinterSetup.Remove")
+            : Loc.Get("PrinterSetup.Add");
 
     /// <summary>
     /// Turns the preview to the first sheet carrying a job. Selecting one in the
@@ -1241,7 +1264,7 @@ public partial class MainWindow : Window
         if (_imposed is null) return false;
         if (PrinterBox.SelectedItem is not string printer)
         {
-            MessageBox.Show(this, "Choose a printer first.", "Open-LeanPrint",
+            MessageBox.Show(this, Loc.Get("Dialog.ChoosePrinter"), "Open-LeanPrint",
                             MessageBoxButton.OK, MessageBoxImage.Information);
             return false;
         }
@@ -1249,7 +1272,7 @@ public partial class MainWindow : Window
         byte[] pdf = _imposed;
         PrintButton.IsEnabled = false;
         PrintCloseButton.IsEnabled = false;
-        StatusText.Text = $"Printing to \"{printer}\"…";
+        StatusText.Text = Loc.Format("Status.Printing", printer);
         try
         {
             var duplex = SelectedDuplex();
@@ -1263,21 +1286,21 @@ public partial class MainWindow : Window
             // asked for: they differ when the printer cannot do it, and until
             // this said so there was no way to tell from inside the app.
             string sides = report.DuplexUnsupported
-                ? " This printer cannot print two-sided, so it went out single-sided."
-                : report.Duplex switch
+                ? Loc.Get("Sides.Unsupported")
+                : Loc.Get(report.Duplex switch
                 {
-                    DuplexMode.Simplex => " Single-sided.",
-                    DuplexMode.LongEdge => " Two-sided, flipped on the long edge.",
-                    DuplexMode.ShortEdge => " Two-sided, flipped on the short edge.",
-                    _ => " Sides left to the printer's own setting.",
-                };
-            StatusText.Text = $"Sent {report.Sheets} sheet(s) to \"{report.PrinterName}\" " +
-                              $"({string.Join("/", report.PaperNames)})." + sides;
+                    DuplexMode.Simplex => "Sides.Simplex",
+                    DuplexMode.LongEdge => "Sides.Long",
+                    DuplexMode.ShortEdge => "Sides.Short",
+                    _ => "Sides.Default",
+                });
+            StatusText.Text = Loc.Format("Status.Sent", report.Sheets, report.PrinterName,
+                                         string.Join("/", report.PaperNames)) + sides;
             return true;
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Printing failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, ex.Message, Loc.Get("Dialog.PrintFailed"), MessageBoxButton.OK, MessageBoxImage.Error);
             UpdateControls();
             return false;
         }
@@ -1298,15 +1321,15 @@ public partial class MainWindow : Window
 
         var dialog = new SaveFileDialog
         {
-            Title = "Save the imposed PDF",
-            Filter = "PDF documents (*.pdf)|*.pdf",
+            Title = Loc.Get("Dialog.SaveTitle"),
+            Filter = Loc.Get("Dialog.PdfFilter"),
             FileName = suggested,
             DefaultExt = ".pdf",
         };
         if (dialog.ShowDialog(this) != true) return;
 
         File.WriteAllBytes(dialog.FileName, _imposed);
-        StatusText.Text = $"Saved {Path.GetFileName(dialog.FileName)} ({_imposed.Length:N0} bytes).";
+        StatusText.Text = Loc.Format("Status.Saved", Path.GetFileName(dialog.FileName), _imposed.Length);
     }
 
     // ---------- ui state ----------
@@ -1314,7 +1337,9 @@ public partial class MainWindow : Window
     private string LayoutTag() => _booklet ? "booklet" : $"{_rows}x{_columns}up";
 
     private string LayoutDescription() =>
-        _booklet ? $"booklet on {PaperBox.SelectedItem}" : $"{_rows}×{_columns}-up on {PaperBox.SelectedItem}";
+        _booklet
+            ? Loc.Format("Layout.Booklet", PaperBox.SelectedItem)
+            : Loc.Format("Layout.NUp", _rows, _columns, PaperBox.SelectedItem);
 
     private void UpdateControls()
     {
@@ -1336,23 +1361,22 @@ public partial class MainWindow : Window
         PrevSheet.IsEnabled = hasSheets && _sheetIndex > 0;
         NextSheet.IsEnabled = hasSheets && _sheetIndex < _sheetCount - 1;
 
-        SheetLabel.Text = hasSheets ? $"Sheet {_sheetIndex + 1} of {_sheetCount}" : "—";
+        SheetLabel.Text = hasSheets ? Loc.Format("Sheet.Label", _sheetIndex + 1, _sheetCount) : "—";
         PreviewTip.Visibility = hasSheets ? Visibility.Visible : Visibility.Hidden;
 
         if (!hasJobs)
         {
-            StatusText.Text = "No jobs yet.";
+            StatusText.Text = Loc.Get("Status.NoJobs");
             return;
         }
 
         int pages = _jobs.Sum(job => job.Pages.IsAll
             ? job.PageCount
             : Enumerable.Range(1, job.PageCount).Count(job.Pages.Includes));
-        string jobWord = _jobs.Count == 1 ? "job" : "jobs";
-        string pageWord = pages == 1 ? "page" : "pages";
-        string sheetWord = _sheetCount == 1 ? "sheet" : "sheets";
+        string jobs = Loc.Count("Count.Job", _jobs.Count);
+        string pageCount = Loc.Count("Count.Page", pages);
         StatusText.Text = hasSheets
-            ? $"{_jobs.Count} {jobWord} · {pages} {pageWord} → {_sheetCount} {sheetWord} · {LayoutDescription()}"
-            : $"{_jobs.Count} {jobWord} · {pages} {pageWord}";
+            ? $"{jobs} · {pageCount} → {Loc.Count("Count.Sheet", _sheetCount)} · {LayoutDescription()}"
+            : $"{jobs} · {pageCount}";
     }
 }

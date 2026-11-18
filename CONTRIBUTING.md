@@ -63,6 +63,26 @@ their own habits:
   service answering. That is why the installer does it, and why the app's own
   setup button raises a prompt.
 
+## Languages
+
+Every text the app shows lives in `src/OpenLeanPrint.App/Strings.resx`
+(English, and the fallback for anything a translation lacks) with one
+`Strings.<code>.resx` per language beside it. XAML refers to them as
+`{l:Loc Key}`, code as `Loc.Get("Key")`, `Loc.Format("Key", …)` and
+`Loc.Count("Key", n)` - the last picks `Key.One` or `Key.Many`.
+
+- **A new text** goes into `Strings.resx` first and then into every
+  translation. A key missing from a translation shows the English text, which
+  is a fallback, not a plan.
+- **Placeholders must match.** `{0}` in English and `{1}` in the translation
+  throws at the moment the text is shown, not when it is built.
+- **A new language** is one more `Strings.<code>.resx`, an entry in
+  `LanguagePreference` and in `Loc.Resolve`, and its own name in the tray's language menu - written
+  in that language, so it can be found by someone who cannot read the current
+  one.
+- **Only the UI culture changes.** Number formatting stays with Windows'
+  regional settings on purpose: the margin box is parsed with them.
+
 ## Packaging
 
 Four rules, each of which cost an afternoon to learn:

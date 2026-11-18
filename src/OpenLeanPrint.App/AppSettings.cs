@@ -51,6 +51,9 @@ public sealed record AppSettings
 
     /// <summary>System, Light or Dark. Stored as text so the file stays readable.</summary>
     public string Theme { get; init; } = nameof(ThemePreference.System);
+
+    /// <summary>System, English, German, French or Spanish. Text for the same reason.</summary>
+    public string Language { get; init; } = nameof(LanguagePreference.System);
     /// <summary>
     /// Announce with a balloon that closing the window only hid it. On by
     /// default, because the first time it is the only explanation of where the

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Français. Vocabulaire de Word (« Pages par feuille ») plutôt que celui de
+  l’imprimerie ; le lecteur est vouvoyé.
+-->
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AddPdfs" xml:space="preserve"><value>Ajouter des PDF…</value></data>
+  <data name="Remove" xml:space="preserve"><value>Retirer</value></data>
+  <data name="Collect" xml:space="preserve"><value>Collecter les impressions</value></data>
+  <data name="Collect.Tip" xml:space="preserve"><value>Lance le service de l’imprimante virtuelle et ajoute chaque impression à la liste</value></data>
+  <data name="PrinterSetup.Tip" xml:space="preserve"><value>Crée l’imprimante Windows qui alimente Open-LeanPrint. Nécessite une seule fois des droits d’administrateur.</value></data>
+  <data name="PrinterSetup.Add" xml:space="preserve"><value>Installer l’imprimante virtuelle…</value></data>
+  <data name="PrinterSetup.Remove" xml:space="preserve"><value>Supprimer l’imprimante virtuelle</value></data>
+  <data name="Layout" xml:space="preserve"><value>Pages par feuille</value></data>
+  <data name="Layout.Tip" xml:space="preserve"><value>Combien de pages tiennent sur une feuille. Ces boutons sont les choix courants ; ils remplissent simplement la case « Grille » à côté.</value></data>
+  <data name="Preset.1up" xml:space="preserve"><value>1 page</value></data>
+  <data name="Preset.2up" xml:space="preserve"><value>2 pages</value></data>
+  <data name="Preset.2up.Tip" xml:space="preserve"><value>Deux pages par feuille : l’une au-dessus de l’autre et tournées, ce qui remplit la feuille. Côte à côte et droites, c’est 1x2 dans la case « Grille ».</value></data>
+  <data name="Preset.4up" xml:space="preserve"><value>4 pages</value></data>
+  <data name="Preset.9up" xml:space="preserve"><value>9 pages</value></data>
+  <data name="Preset.Booklet" xml:space="preserve"><value>Livret</value></data>
+  <data name="Grid" xml:space="preserve"><value>Grille</value></data>
+  <data name="Grid.Tip" xml:space="preserve"><value>Pages par feuille, en lignes × colonnes : 2x2 met quatre pages sur une feuille – comme le bouton « 4 pages ». Saisissez ce que les boutons ne proposent pas, par exemple 2x3, 1x4 ou simplement un nombre comme 6. La case montre toujours la disposition en vigueur ; c’est pourquoi « 4 pages » y inscrit 2x2.</value></data>
+  <data name="Paper" xml:space="preserve"><value>Papier</value></data>
+  <data name="Margin" xml:space="preserve"><value>Marge</value></data>
+  <data name="Margin.Tip" xml:space="preserve"><value>La bordure vide autour de toute la feuille. Laissez 10 mm ou plus si les feuilles doivent être agrafées ou perforées.</value></data>
+  <data name="Unit.Mm" xml:space="preserve"><value>mm</value></data>
+  <data name="Gutter" xml:space="preserve"><value>Espacement</value></data>
+  <data name="Gutter.Tip" xml:space="preserve"><value>L’espace entre les pages d’une feuille. La marge est la bordure extérieure, l’espacement l’écart au milieu – avec une disposition 1x1, il ne fait rien.</value></data>
+  <data name="PageBorders" xml:space="preserve"><value>Bordures de page</value></data>
+  <data name="PageBorders.Tip" xml:space="preserve"><value>Trace un cadre fin autour de chaque page. Sans cela, quatre pages séparées par du blanc se lisent comme une seule page surchargée.</value></data>
+  <data name="Watermark" xml:space="preserve"><value>Filigrane</value></data>
+  <data name="Watermark.Tip" xml:space="preserve"><value>Texte imprimé en diagonale sur chaque feuille, p. ex. BROUILLON. Vide signifie aucun.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Profil</value></data>
+  <data name="Profile.Tip" xml:space="preserve"><value>Choisissez une mise en page enregistrée, ou saisissez un nom et appuyez sur « Enregistrer » pour garder l’actuelle.</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="DeleteProfile.Tip" xml:space="preserve"><value>Supprimer le profil sélectionné</value></data>
+  <data name="PrintClose" xml:space="preserve"><value>Imprimer et fermer</value></data>
+  <data name="PrintClose.Tip" xml:space="preserve"><value>Imprimer, vider la liste et ranger la fenêtre. La fin habituelle : ce qui est imprimé est réglé.</value></data>
+  <data name="Print" xml:space="preserve"><value>Imprimer</value></data>
+  <data name="Print.Tip" xml:space="preserve"><value>Imprimer et tout laisser en l’état – pour un second exemplaire ou une autre imprimante.</value></data>
+  <data name="Printer" xml:space="preserve"><value>Imprimante</value></data>
+  <data name="Sides" xml:space="preserve"><value>Recto verso</value></data>
+  <data name="Sides.Tip" xml:space="preserve"><value>Le bord long est le choix habituel pour les feuilles en portrait – le verso se lit comme la page suivante d’un livre. Les livrets demandent le bord court : leurs feuilles sont en paysage, et retourner sur le bord long imprimerait une face sur deux à l’envers. Ce qui a vraiment été appliqué est indiqué après l’impression.</value></data>
+  <data name="SavePdf" xml:space="preserve"><value>Enregistrer le PDF…</value></data>
+  <data name="Duplex.Default" xml:space="preserve"><value>Réglage de l’imprimante</value></data>
+  <data name="Duplex.Simplex" xml:space="preserve"><value>Recto seul</value></data>
+  <data name="Duplex.Long" xml:space="preserve"><value>Recto verso, bord long</value></data>
+  <data name="Duplex.Short" xml:space="preserve"><value>Recto verso, bord court</value></data>
+  <data name="Pool.Title" xml:space="preserve"><value>Travaux</value></data>
+  <data name="Pool.Hint" xml:space="preserve"><value>Une entrée par PDF. Ils sont placés sur des feuilles communes dans cet ordre – ↑ ↓ pour le changer. Sélectionnez-en un pour choisir les pages à imprimer ; l’aperçu s’y rend.</value></data>
+  <data name="Pages" xml:space="preserve"><value>Pages</value></data>
+  <data name="Pages.Tip" xml:space="preserve"><value>Quelles pages du travail sélectionné imprimer, p. ex. 1-4,7 ou 3-. Vide signifie toutes.</value></data>
+  <data name="MoveUp.Tip" xml:space="preserve"><value>Monter le travail</value></data>
+  <data name="MoveDown.Tip" xml:space="preserve"><value>Descendre le travail</value></data>
+  <data name="Clear" xml:space="preserve"><value>Vider</value></data>
+  <data name="Menu.RemoveJob" xml:space="preserve"><value>Retirer de la liste</value></data>
+  <data name="Menu.RestoreJob" xml:space="preserve"><value>Imprimer toutes les pages de ce travail</value></data>
+  <data name="Menu.EmptyPool" xml:space="preserve"><value>Vider la liste</value></data>
+  <data name="Pool.Empty" xml:space="preserve"><value>Déposez des PDF ici ou utilisez « Ajouter des PDF » – ou activez « Collecter les impressions » et imprimez depuis n’importe quelle application. Plusieurs travaux sont réunis sur des feuilles communes, dans cet ordre.</value></data>
+  <data name="Job.Pages.One" xml:space="preserve"><value>1 page</value></data>
+  <data name="Job.Pages.Many" xml:space="preserve"><value>{0} pages</value></data>
+  <data name="Job.Printing" xml:space="preserve"><value> · imprimées : {0}</value></data>
+  <data name="Job.Turned" xml:space="preserve"><value> · {0} tournée(s)</value></data>
+  <data name="Preview.Hint" xml:space="preserve"><value>La feuille composée apparaît ici.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Clic droit sur une page de l’aperçu pour la retirer.</value></data>
+  <data name="Sheet.Label" xml:space="preserve"><value>Feuille {0} sur {1}</value></data>
+  <data name="PageMenu.Remove" xml:space="preserve"><value>Retirer la page {0} de {1}</value></data>
+  <data name="PageMenu.Turn" xml:space="preserve"><value>Tourner la page {0} de 90°</value></data>
+  <data name="PageMenu.Upright" xml:space="preserve"><value>Remettre la page {0} à l’endroit</value></data>
+  <data name="PageMenu.Restore" xml:space="preserve"><value>Rétablir toutes les pages de {0}</value></data>
+  <data name="Status.NoJobs" xml:space="preserve"><value>Aucun travail pour l’instant.</value></data>
+  <data name="Status.Imposing" xml:space="preserve"><value>Composition des feuilles…</value></data>
+  <data name="Status.Elevated" xml:space="preserve"><value>Exécuté en tant qu’administrateur. Rien ici n’en a besoin – fermez et relancez normalement.</value></data>
+  <data name="Status.WatchFailed" xml:space="preserve"><value>Impossible de surveiller {0} : {1}</value></data>
+  <data name="Status.Listening" xml:space="preserve"><value>En attente d’impressions sur le port {0}.</value></data>
+  <data name="Status.FromService" xml:space="preserve"><value>Collecte des travaux depuis le service Open-LeanPrint.</value></data>
+  <data name="Status.PortBusy" xml:space="preserve"><value>Le port {0} est utilisé par autre chose ; surveillance des dossiers de capture.</value></data>
+  <data name="Status.Skipped" xml:space="preserve"><value> {0} anciens travaux sont restés dans le dossier.</value></data>
+  <data name="Status.LastPage" xml:space="preserve"><value>C’est la dernière page restante – retirez plutôt le travail.</value></data>
+  <data name="Status.ProfileNameNeeded" xml:space="preserve"><value>Saisissez d’abord un nom pour le profil.</value></data>
+  <data name="Status.ProfileSaved" xml:space="preserve"><value>Profil « {0} » enregistré.</value></data>
+  <data name="Status.ProfileDeleted" xml:space="preserve"><value>Profil « {0} » supprimé.</value></data>
+  <data name="Status.PrinterRemoved" xml:space="preserve"><value>L’imprimante Open-LeanPrint a été supprimée.</value></data>
+  <data name="Status.PrinterNotRemoved" xml:space="preserve"><value>L’imprimante n’a pas été supprimée.</value></data>
+  <data name="Status.NoListener" xml:space="preserve"><value>Rien n’écoute les impressions, l’imprimante ne peut donc pas encore être créée.</value></data>
+  <data name="Status.CreatingPrinter" xml:space="preserve"><value>Création de l’imprimante…</value></data>
+  <data name="Status.PrinterReady" xml:space="preserve"><value>L’imprimante Open-LeanPrint est prête – imprimez-y depuis n’importe quelle application.</value></data>
+  <data name="Status.PrinterNotCreated" xml:space="preserve"><value>L’imprimante n’a pas été créée. Cette seule étape nécessite des droits d’administrateur.</value></data>
+  <data name="Status.Printing" xml:space="preserve"><value>Impression sur « {0} »…</value></data>
+  <data name="Status.Sent" xml:space="preserve"><value>{0} feuille(s) envoyée(s) à « {1} » ({2}).</value></data>
+  <data name="Sides.Unsupported" xml:space="preserve"><value> Cette imprimante ne sait pas imprimer en recto verso ; l’impression est partie en recto seul.</value></data>
+  <data name="Sides.Simplex" xml:space="preserve"><value> Recto seul.</value></data>
+  <data name="Sides.Long" xml:space="preserve"><value> Recto verso, retourné sur le bord long.</value></data>
+  <data name="Sides.Short" xml:space="preserve"><value> Recto verso, retourné sur le bord court.</value></data>
+  <data name="Sides.Default" xml:space="preserve"><value> Recto verso selon le réglage de l’imprimante.</value></data>
+  <data name="Status.Saved" xml:space="preserve"><value>{0} enregistré ({1:N0} octets).</value></data>
+  <data name="Layout.Booklet" xml:space="preserve"><value>livret sur {0}</value></data>
+  <data name="Layout.NUp" xml:space="preserve"><value>{0}×{1} par feuille sur {2}</value></data>
+  <data name="Count.Job.One" xml:space="preserve"><value>1 travail</value></data>
+  <data name="Count.Job.Many" xml:space="preserve"><value>{0} travaux</value></data>
+  <data name="Count.Page.One" xml:space="preserve"><value>1 page</value></data>
+  <data name="Count.Page.Many" xml:space="preserve"><value>{0} pages</value></data>
+  <data name="Count.Sheet.One" xml:space="preserve"><value>1 feuille</value></data>
+  <data name="Count.Sheet.Many" xml:space="preserve"><value>{0} feuilles</value></data>
+  <data name="Dialog.AddTitle" xml:space="preserve"><value>Ajouter des PDF à la liste</value></data>
+  <data name="Dialog.PdfFilterAll" xml:space="preserve"><value>Documents PDF (*.pdf)|*.pdf|Tous les fichiers (*.*)|*.*</value></data>
+  <data name="Dialog.PdfFilter" xml:space="preserve"><value>Documents PDF (*.pdf)|*.pdf</value></data>
+  <data name="Dialog.AddFailed" xml:space="preserve"><value>Tous les fichiers n’ont pas pu être ajoutés</value></data>
+  <data name="Dialog.SaveTitle" xml:space="preserve"><value>Enregistrer le PDF composé</value></data>
+  <data name="Dialog.ChoosePrinter" xml:space="preserve"><value>Choisissez d’abord une imprimante.</value></data>
+  <data name="Dialog.PrintFailed" xml:space="preserve"><value>L’impression a échoué</value></data>
+  <data name="Dialog.SetupTitle" xml:space="preserve"><value>Installer l’imprimante virtuelle</value></data>
+  <data name="Dialog.SetupText" xml:space="preserve"><value>Open-LeanPrint peut ajouter son imprimante virtuelle maintenant, pour que vous puissiez y imprimer depuis n’importe quelle application.
+
+Windows demandera une fois des droits d’administrateur – la création d’une imprimante l’exige.</value></data>
+  <data name="Balloon.StillCollecting" xml:space="preserve"><value>Collecte en cours</value></data>
+  <data name="Balloon.StillCollecting.Text" xml:space="preserve"><value>La liste est vide et Open-LeanPrint continue de collecter. Double-cliquez sur l’icône pour la rouvrir.</value></data>
+  <data name="Balloon.JobCollected" xml:space="preserve"><value>Travail reçu</value></data>
+  <data name="Tray.Show" xml:space="preserve"><value>Afficher Open-LeanPrint</value></data>
+  <data name="Tray.PopUp" xml:space="preserve"><value>Afficher la fenêtre à l’arrivée d’un travail</value></data>
+  <data name="Tray.NoticeOnHide" xml:space="preserve"><value>Prévenir quand la fenêtre passe dans la zone de notification</value></data>
+  <data name="Tray.Appearance" xml:space="preserve"><value>Apparence</value></data>
+  <data name="Tray.SameAsWindows" xml:space="preserve"><value>Comme Windows</value></data>
+  <data name="Tray.Light" xml:space="preserve"><value>Clair</value></data>
+  <data name="Tray.Dark" xml:space="preserve"><value>Sombre</value></data>
+  <data name="Tray.Language" xml:space="preserve"><value>Langue</value></data>
+  <data name="Tray.Exit" xml:space="preserve"><value>Quitter</value></data>
+</root>

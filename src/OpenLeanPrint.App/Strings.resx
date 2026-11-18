@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The interface in English. This is also the fallback: a key missing from a
+  translation shows the English text. Every key used in code or XAML lives here.
+-->
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AddPdfs" xml:space="preserve"><value>Add PDFs…</value></data>
+  <data name="Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Collect" xml:space="preserve"><value>Collect captured jobs</value></data>
+  <data name="Collect.Tip" xml:space="preserve"><value>Run the virtual printer service and add every job you print to the pool</value></data>
+  <data name="PrinterSetup.Tip" xml:space="preserve"><value>Creates the Windows printer queue that feeds OpenLeanPrint. Needs administrator rights once.</value></data>
+  <data name="PrinterSetup.Add" xml:space="preserve"><value>Set up virtual printer…</value></data>
+  <data name="PrinterSetup.Remove" xml:space="preserve"><value>Remove virtual printer</value></data>
+  <data name="Layout" xml:space="preserve"><value>Layout</value></data>
+  <data name="Layout.Tip" xml:space="preserve"><value>How many pages go on one sheet. These buttons are the usual choices and simply fill in the Grid box next to them.</value></data>
+  <data name="Preset.1up" xml:space="preserve"><value>1-up</value></data>
+  <data name="Preset.2up" xml:space="preserve"><value>2-up</value></data>
+  <data name="Preset.2up.Tip" xml:space="preserve"><value>Two pages per sheet: stacked and turned sideways, which fills the sheet. Side by side upright is 1x2 in the Grid box.</value></data>
+  <data name="Preset.4up" xml:space="preserve"><value>4-up</value></data>
+  <data name="Preset.9up" xml:space="preserve"><value>9-up</value></data>
+  <data name="Preset.Booklet" xml:space="preserve"><value>Booklet</value></data>
+  <data name="Grid" xml:space="preserve"><value>Grid</value></data>
+  <data name="Grid.Tip" xml:space="preserve"><value>Pages per sheet, as rows × columns: 2x2 puts four pages on a sheet — the same thing the 4-up button does. Type anything the buttons do not cover, such as 2x3, 1x4, or just a count like 6. The box always shows the layout in force, which is why choosing 4-up writes 2x2 here.</value></data>
+  <data name="Paper" xml:space="preserve"><value>Paper</value></data>
+  <data name="Margin" xml:space="preserve"><value>Margin</value></data>
+  <data name="Margin.Tip" xml:space="preserve"><value>The blank border around the whole sheet. Leave 10 mm or more if the sheets are to be stapled or punched.</value></data>
+  <data name="Unit.Mm" xml:space="preserve"><value>mm</value></data>
+  <data name="Gutter" xml:space="preserve"><value>Gutter</value></data>
+  <data name="Gutter.Tip" xml:space="preserve"><value>The space between the pages on a sheet. Margin is the border around the outside, gutter is the gap in the middle - with a 1x1 layout it does nothing at all.</value></data>
+  <data name="PageBorders" xml:space="preserve"><value>Page borders</value></data>
+  <data name="PageBorders.Tip" xml:space="preserve"><value>Draws a thin frame around every page. Without one, four pages on a sheet with white space between them read as a single crowded page.</value></data>
+  <data name="Watermark" xml:space="preserve"><value>Watermark</value></data>
+  <data name="Watermark.Tip" xml:space="preserve"><value>Text drawn diagonally across every sheet, e.g. DRAFT. Empty means none.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Profile</value></data>
+  <data name="Profile.Tip" xml:space="preserve"><value>Pick a saved layout, or type a name and press Save to keep the current one.</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="DeleteProfile.Tip" xml:space="preserve"><value>Delete the selected profile</value></data>
+  <data name="PrintClose" xml:space="preserve"><value>Print and close</value></data>
+  <data name="PrintClose.Tip" xml:space="preserve"><value>Print, empty the pool and put the window away. The usual end of a job: what you have printed is done with.</value></data>
+  <data name="Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Print.Tip" xml:space="preserve"><value>Print and leave everything as it is - for a second copy, or another printer.</value></data>
+  <data name="Printer" xml:space="preserve"><value>Printer</value></data>
+  <data name="Sides" xml:space="preserve"><value>Sides</value></data>
+  <data name="Sides.Tip" xml:space="preserve"><value>Long edge is the usual choice for upright sheets - the back reads like the next page of a book. Booklets need short edge instead: their sheets are landscape, so flipping the long edge prints every second side upside down. What was actually applied is reported after printing.</value></data>
+  <data name="SavePdf" xml:space="preserve"><value>Save PDF…</value></data>
+  <data name="Duplex.Default" xml:space="preserve"><value>Printer default</value></data>
+  <data name="Duplex.Simplex" xml:space="preserve"><value>Single-sided</value></data>
+  <data name="Duplex.Long" xml:space="preserve"><value>Two-sided, long edge</value></data>
+  <data name="Duplex.Short" xml:space="preserve"><value>Two-sided, short edge</value></data>
+  <data name="Pool.Title" xml:space="preserve"><value>Job pool</value></data>
+  <data name="Pool.Hint" xml:space="preserve"><value>One entry per PDF. They are laid onto shared sheets in this order — use ↑ ↓ to change it. Select one to choose which of its pages to print; the preview jumps to it.</value></data>
+  <data name="Pages" xml:space="preserve"><value>Pages</value></data>
+  <data name="Pages.Tip" xml:space="preserve"><value>Which pages of the selected job to print, e.g. 1-4,7 or 3-. Empty means all.</value></data>
+  <data name="MoveUp.Tip" xml:space="preserve"><value>Move job up</value></data>
+  <data name="MoveDown.Tip" xml:space="preserve"><value>Move job down</value></data>
+  <data name="Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Menu.RemoveJob" xml:space="preserve"><value>Remove from the pool</value></data>
+  <data name="Menu.RestoreJob" xml:space="preserve"><value>Print all pages of this job</value></data>
+  <data name="Menu.EmptyPool" xml:space="preserve"><value>Empty the pool</value></data>
+  <data name="Pool.Empty" xml:space="preserve"><value>Drop PDFs here, or use Add PDFs — or switch on “Collect captured jobs” and print from any application. Several jobs are combined onto shared sheets, in this order.</value></data>
+  <data name="Job.Pages.One" xml:space="preserve"><value>1 page</value></data>
+  <data name="Job.Pages.Many" xml:space="preserve"><value>{0} pages</value></data>
+  <data name="Job.Printing" xml:space="preserve"><value> · printing {0}</value></data>
+  <data name="Job.Turned" xml:space="preserve"><value> · {0} turned</value></data>
+  <data name="Preview.Hint" xml:space="preserve"><value>The imposed sheet appears here.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Right-click a page in the preview to remove it.</value></data>
+  <data name="Sheet.Label" xml:space="preserve"><value>Sheet {0} of {1}</value></data>
+  <data name="PageMenu.Remove" xml:space="preserve"><value>Remove page {0} of {1}</value></data>
+  <data name="PageMenu.Turn" xml:space="preserve"><value>Turn page {0} by 90°</value></data>
+  <data name="PageMenu.Upright" xml:space="preserve"><value>Put page {0} back upright</value></data>
+  <data name="PageMenu.Restore" xml:space="preserve"><value>Restore all pages of {0}</value></data>
+  <data name="Status.NoJobs" xml:space="preserve"><value>No jobs yet.</value></data>
+  <data name="Status.Imposing" xml:space="preserve"><value>Imposing…</value></data>
+  <data name="Status.Elevated" xml:space="preserve"><value>Running as administrator. Nothing here needs that - close it and start it normally.</value></data>
+  <data name="Status.WatchFailed" xml:space="preserve"><value>Could not watch {0}: {1}</value></data>
+  <data name="Status.Listening" xml:space="preserve"><value>Listening for print jobs on port {0}.</value></data>
+  <data name="Status.FromService" xml:space="preserve"><value>Collecting jobs from the Open-LeanPrint service.</value></data>
+  <data name="Status.PortBusy" xml:space="preserve"><value>Port {0} is in use by something else; watching the capture folders.</value></data>
+  <data name="Status.Skipped" xml:space="preserve"><value> {0} older captured jobs were left in the folder.</value></data>
+  <data name="Status.LastPage" xml:space="preserve"><value>That is the last page left - remove the job instead.</value></data>
+  <data name="Status.ProfileNameNeeded" xml:space="preserve"><value>Type a name for the profile first.</value></data>
+  <data name="Status.ProfileSaved" xml:space="preserve"><value>Saved the profile “{0}”.</value></data>
+  <data name="Status.ProfileDeleted" xml:space="preserve"><value>Deleted the profile “{0}”.</value></data>
+  <data name="Status.PrinterRemoved" xml:space="preserve"><value>Removed the Open-LeanPrint printer.</value></data>
+  <data name="Status.PrinterNotRemoved" xml:space="preserve"><value>The printer was not removed.</value></data>
+  <data name="Status.NoListener" xml:space="preserve"><value>Nothing is listening for print jobs, so the printer cannot be created yet.</value></data>
+  <data name="Status.CreatingPrinter" xml:space="preserve"><value>Creating the printer…</value></data>
+  <data name="Status.PrinterReady" xml:space="preserve"><value>The Open-LeanPrint printer is ready - print to it from any application.</value></data>
+  <data name="Status.PrinterNotCreated" xml:space="preserve"><value>The printer was not created. Administrator rights are needed for that one step.</value></data>
+  <data name="Status.Printing" xml:space="preserve"><value>Printing to "{0}"…</value></data>
+  <data name="Status.Sent" xml:space="preserve"><value>Sent {0} sheet(s) to "{1}" ({2}).</value></data>
+  <data name="Sides.Unsupported" xml:space="preserve"><value> This printer cannot print two-sided, so it went out single-sided.</value></data>
+  <data name="Sides.Simplex" xml:space="preserve"><value> Single-sided.</value></data>
+  <data name="Sides.Long" xml:space="preserve"><value> Two-sided, flipped on the long edge.</value></data>
+  <data name="Sides.Short" xml:space="preserve"><value> Two-sided, flipped on the short edge.</value></data>
+  <data name="Sides.Default" xml:space="preserve"><value> Sides left to the printer's own setting.</value></data>
+  <data name="Status.Saved" xml:space="preserve"><value>Saved {0} ({1:N0} bytes).</value></data>
+  <data name="Layout.Booklet" xml:space="preserve"><value>booklet on {0}</value></data>
+  <data name="Layout.NUp" xml:space="preserve"><value>{0}×{1}-up on {2}</value></data>
+  <data name="Count.Job.One" xml:space="preserve"><value>1 job</value></data>
+  <data name="Count.Job.Many" xml:space="preserve"><value>{0} jobs</value></data>
+  <data name="Count.Page.One" xml:space="preserve"><value>1 page</value></data>
+  <data name="Count.Page.Many" xml:space="preserve"><value>{0} pages</value></data>
+  <data name="Count.Sheet.One" xml:space="preserve"><value>1 sheet</value></data>
+  <data name="Count.Sheet.Many" xml:space="preserve"><value>{0} sheets</value></data>
+  <data name="Dialog.AddTitle" xml:space="preserve"><value>Add PDFs to the job pool</value></data>
+  <data name="Dialog.PdfFilterAll" xml:space="preserve"><value>PDF documents (*.pdf)|*.pdf|All files (*.*)|*.*</value></data>
+  <data name="Dialog.PdfFilter" xml:space="preserve"><value>PDF documents (*.pdf)|*.pdf</value></data>
+  <data name="Dialog.AddFailed" xml:space="preserve"><value>Could not add every file</value></data>
+  <data name="Dialog.SaveTitle" xml:space="preserve"><value>Save the imposed PDF</value></data>
+  <data name="Dialog.ChoosePrinter" xml:space="preserve"><value>Choose a printer first.</value></data>
+  <data name="Dialog.PrintFailed" xml:space="preserve"><value>Printing failed</value></data>
+  <data name="Dialog.SetupTitle" xml:space="preserve"><value>Set up the virtual printer</value></data>
+  <data name="Dialog.SetupText" xml:space="preserve"><value>Open-LeanPrint can add its virtual printer now, so you can print into it from any application.
+
+Windows will ask for administrator rights once - creating a printer queue requires them.</value></data>
+  <data name="Balloon.StillCollecting" xml:space="preserve"><value>Still collecting</value></data>
+  <data name="Balloon.StillCollecting.Text" xml:space="preserve"><value>The pool is empty and Open-LeanPrint keeps collecting. Double-click the tray icon to bring it back.</value></data>
+  <data name="Balloon.JobCollected" xml:space="preserve"><value>Job collected</value></data>
+  <data name="Tray.Show" xml:space="preserve"><value>Show Open-LeanPrint</value></data>
+  <data name="Tray.PopUp" xml:space="preserve"><value>Show the window when a job arrives</value></data>
+  <data name="Tray.NoticeOnHide" xml:space="preserve"><value>Tell me when the window goes to the tray</value></data>
+  <data name="Tray.Appearance" xml:space="preserve"><value>Appearance</value></data>
+  <data name="Tray.SameAsWindows" xml:space="preserve"><value>Same as Windows</value></data>
+  <data name="Tray.Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Tray.Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Tray.Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Tray.Exit" xml:space="preserve"><value>Exit</value></data>
+</root>

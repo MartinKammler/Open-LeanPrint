@@ -189,11 +189,16 @@ Double-click the tray icon to bring it back, or use *Exit* there to really quit.
 A balloon says so each time the window goes; *Tell me when the window goes to
 the tray* in the tray menu switches it off.
 
+**Language.** English, German, French or Spanish. The app follows Windows'
+display language, and *Language* in the tray menu fixes it to one of the four;
+the window changes at once. Numbers always follow Windows' regional format, so a
+margin is typed 2,5 or 2.5 the way you are used to.
+
 **Appearance.** The window follows Windows' light or dark mode, and changes with
 it. *Appearance* in the tray menu can fix it to *Light* or *Dark* instead. The
 preview sheet stays white either way: it is a picture of paper.
 
-The app remembers your layout, paper, margins, printer, watermark, appearance and
+The app remembers your layout, paper, margins, printer, watermark, appearance, language and
 whether it was collecting.
 
 ## Hands-free: watch

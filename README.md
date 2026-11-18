@@ -19,8 +19,9 @@ as on Intel.
 > genuinely good tool and for releasing it under the MIT licence, which is what
 > makes a fork like this possible.
 >
-> This fork adds what I wanted for my own use — so far a **dark mode** and a
-> switch for the tray balloon after printing — and will keep going its own way.
+> This fork adds what I wanted for my own use — so far a **dark mode**, the
+> interface in **English, German, French and Spanish**, and a switch for the tray
+> balloon after printing — and will keep going its own way.
 > What changed, and since when, is in the [changelog](CHANGELOG.md). Problems
 > with this fork belong here, not upstream.
 

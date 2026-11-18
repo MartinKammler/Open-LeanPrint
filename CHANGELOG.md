@@ -18,6 +18,17 @@ Zarenko. Everything below 0.5.0 is the original project's history.
 
 ### Added
 
+- **Four languages: English, German, French and Spanish.** The interface follows
+  Windows' display language and falls back to English for any other. *Language*
+  in the tray menu fixes it instead, and the switch happens on the spot, without
+  a restart. Each language is listed under its own name there, so someone who
+  cannot read the current one can still find theirs.
+
+  The wording follows what people already read in Word - *Seiten pro Blatt*,
+  *Pages par feuille*, *Páginas por hoja* - rather than the printing trade's
+  *ausschießen*. Numbers keep following Windows' regional format whatever the
+  interface language, because that is how people type them.
+
 - **A dark mode.** The window follows Windows' "Choose your app mode" setting
   and switches along with it, title bar included. *Appearance* in the tray menu
   fixes it to *Light* or *Dark* instead; the choice is remembered. The preview

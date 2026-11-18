@@ -12,7 +12,7 @@ end. The nearest three, in the order they are likely to be tackled:
 2. **Look at a printed sheet.** Printing is verified through the spooler and
    against *Microsoft Print to PDF*; margins and scale on real paper are the one
    thing nobody has checked, and it is M3's last exit criterion.
-3. **More than one language** - see `Later`.
+3. ~~**More than one language**~~ - done in 0.5.0: English, German, French, Spanish.
 
 Incremental milestones from the current foundation to a usable app. Each
 milestone is meant to be independently reviewable.
@@ -129,13 +129,11 @@ visual check on paper still open).
 
 ## Later
 
-- **More than one language.** The interface is English throughout and has no
-  localisation layer at all - strings sit in the XAML. German first, since that
-  is where it is being used. Worth knowing before starting: the printing
-  vocabulary does not translate word for word. *Impose* is `ausschießen` in the
-  trade and unknown outside it, so the interface would want what people already
-  read in Word - "Seiten pro Blatt" - with the trade term kept for the
-  documentation.
+- ✅ **More than one language** (0.5.0). English, German, French and Spanish,
+  in `src/OpenLeanPrint.App/Strings*.resx`. The interface uses what people
+  already read in Word - "Seiten pro Blatt" - and keeps the trade term
+  (`ausschießen`) for the documentation. More languages are one file each; see
+  CONTRIBUTING.
 
 ## Cross-cutting
 
