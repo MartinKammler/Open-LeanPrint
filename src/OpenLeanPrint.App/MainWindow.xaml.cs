@@ -124,6 +124,11 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Which version is running should be a glance, not a trip to the
+        // Windows settings - the update dialog says "you have 0.5.4", and the
+        // window should say the same.
+        Title = $"Open-LeanPrint {Updates.Current}";
+
         JobList.ItemsSource = _jobs;
         PaperBox.ItemsSource = Papers;
         PaperBox.SelectedIndex = 0;

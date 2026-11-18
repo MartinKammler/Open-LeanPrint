@@ -125,7 +125,7 @@ internal sealed class TrayPresence : IDisposable
         _icon = new WinForms.NotifyIcon
         {
             Icon = LoadIcon(),
-            Text = "Open-LeanPrint",
+            Text = $"Open-LeanPrint {Updates.Current}", // the tooltip; Windows allows 63 characters
             Visible = true,
             ContextMenuStrip = menu,
         };

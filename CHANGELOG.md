@@ -4,6 +4,14 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] — 2026-11-18
+
+### Added
+
+- **The version is on show.** The window title and the tray icon's tooltip
+  read "Open-LeanPrint 0.5.5" instead of just the name, so which version is
+  running no longer takes a trip to the Windows settings.
+
 ## [0.5.4] — 2026-11-18
 
 Robustness, after a code review that read the capture path end to end. Each
