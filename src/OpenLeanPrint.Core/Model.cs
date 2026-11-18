@@ -15,6 +15,15 @@ public sealed record SourcePage(int DocumentIndex, int PageIndex, PtSize Size)
     /// has said which way up they want it, the engine should not argue.
     /// </summary>
     public int Rotation { get; init; }
+
+    /// <summary>
+    /// A blank the user inserted rather than a page of the document. It takes a
+    /// cell like any page - so it can be found under a click - and the composer
+    /// leaves the cell empty. For a blank, <see cref="PageIndex"/> is its anchor:
+    /// the page number it follows, 0 for "before the first". See
+    /// <see cref="BlankPages"/>.
+    /// </summary>
+    public bool IsBlank { get; init; }
 }
 
 /// <summary>

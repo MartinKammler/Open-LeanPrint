@@ -4,9 +4,23 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.2] — 2026-11-18
+
+### Added
+
+- **Blank pages.** Right-click a page in the preview to insert a blank page
+  before or after it; right-click the blank to remove it or add another. A blank
+  takes a cell like any page and prints as nothing, no frame included. It is
+  anchored to the page it was put next to, so changing the layout, the paper or
+  which pages are printed leaves it where it was. The job's summary counts them.
 
 ### Fixed
+
+- **The toolbar wrapped a label away from its box.** With the German texts,
+  *Papier* ended one row and its drop-down began the next. Each label now
+  travels with its box.
+- **Keyboard focus was invisible in the dark mode.** The dotted ring was black;
+  it is drawn in the accent colour now, in both themes.
 
 - **The job names in the pool were black on dark blue in the dark mode.** A
   list item takes its text colour from the system unless told otherwise, and

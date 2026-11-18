@@ -770,10 +770,11 @@ public partial class MainWindow : Window
     private void RestoreJobPages_Click(object sender, RoutedEventArgs e)
     {
         if (JobList.SelectedItem is not JobItem job) return;
-        if (job.Pages.IsAll && job.Rotations.Count == 0) return;
+        if (job.Pages.IsAll && job.Rotations.Count == 0 && job.Blanks.Count == 0) return;
 
         job.Pages = PageSelection.All;
         job.Rotations.Clear();
+        job.Blanks.Clear();
         job.NotifySummaryChanged();
 
         _suppressPagesEdit = true;
@@ -965,6 +966,9 @@ public partial class MainWindow : Window
         var rotations = _jobs
             .Select((job, index) => (index, turns: new Dictionary<int, int>(job.Rotations)))
             .ToDictionary(entry => entry.index, entry => entry.turns);
+        var blanks = _jobs
+            .Select((job, index) => (index, blanks: (IReadOnlyDictionary<int, int>)new Dictionary<int, int>(job.Blanks)))
+            .ToDictionary(entry => entry.index, entry => entry.blanks);
         if (documents.Count == 0)
         {
             _imposed = null;
@@ -1007,6 +1011,7 @@ public partial class MainWindow : Window
                         ? page with { Rotation = degrees }
                         : page)
                     .ToList();
+                sourcePages = BlankPages.Insert(sourcePages, blanks).ToList();
                 ImpositionResult result = booklet
                     ? new BookletImposer().Impose(sourcePages, paper, PtMargins.UniformMm(marginMm), gutter)
                     : new NUpImposer().Impose(sourcePages, settings);
@@ -1073,9 +1078,25 @@ public partial class MainWindow : Window
         if (hit is null) return;
 
         var job = _jobs[hit.Source.DocumentIndex];
-        int pageNumber = hit.Source.PageIndex + 1;
-
         var menu = new ContextMenu { PlacementTarget = PreviewImage };
+
+        if (hit.Source.IsBlank)
+        {
+            int anchor = hit.Source.PageIndex;
+            var removeBlank = new MenuItem { Header = Loc.Get("PageMenu.RemoveBlank") };
+            removeBlank.Click += (_, _) => ChangeBlanks(job, anchor, -1);
+            menu.Items.Add(removeBlank);
+
+            var another = new MenuItem { Header = Loc.Get("PageMenu.AnotherBlank") };
+            another.Click += (_, _) => ChangeBlanks(job, anchor, +1);
+            menu.Items.Add(another);
+
+            menu.IsOpen = true;
+            e.Handled = true;
+            return;
+        }
+
+        int pageNumber = hit.Source.PageIndex + 1;
         var remove = new MenuItem { Header = Loc.Format("PageMenu.Remove", pageNumber, job.Name) };
         remove.Click += (_, _) => RemovePage(job, pageNumber);
         menu.Items.Add(remove);
@@ -1090,6 +1111,15 @@ public partial class MainWindow : Window
             straighten.Click += (_, _) => RotatePage(job, pageNumber, 0, absolute: true);
             menu.Items.Add(straighten);
         }
+
+        menu.Items.Add(new Separator());
+        var before = new MenuItem { Header = Loc.Format("PageMenu.BlankBefore", pageNumber) };
+        before.Click += (_, _) => ChangeBlanks(job, pageNumber - 1, +1);
+        menu.Items.Add(before);
+
+        var after = new MenuItem { Header = Loc.Format("PageMenu.BlankAfter", pageNumber) };
+        after.Click += (_, _) => ChangeBlanks(job, pageNumber, +1);
+        menu.Items.Add(after);
 
         if (!job.Pages.IsAll)
         {
@@ -1148,6 +1178,17 @@ public partial class MainWindow : Window
 
         if (turned == 0) job.Rotations.Remove(pageNumber);
         else job.Rotations[pageNumber] = turned;
+
+        job.NotifySummaryChanged();
+        _ = RefreshAsync();
+    }
+
+    /// <summary>Adds or takes away a blank at one anchor of a job; the sheet in view stays in view.</summary>
+    private void ChangeBlanks(JobItem job, int anchor, int delta)
+    {
+        int count = job.Blanks.TryGetValue(anchor, out int existing) ? existing + delta : delta;
+        if (count > 0) job.Blanks[anchor] = count;
+        else job.Blanks.Remove(anchor);
 
         job.NotifySummaryChanged();
         _ = RefreshAsync();

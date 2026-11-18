@@ -67,7 +67,7 @@
   <data name="Job.Printing" xml:space="preserve"><value> · printing {0}</value></data>
   <data name="Job.Turned" xml:space="preserve"><value> · {0} turned</value></data>
   <data name="Preview.Hint" xml:space="preserve"><value>The imposed sheet appears here.</value></data>
-  <data name="Preview.Tip" xml:space="preserve"><value>Right-click a page in the preview to remove it.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Right-click a page in the preview to remove it, turn it or put a blank page next to it.</value></data>
   <data name="Sheet.Label" xml:space="preserve"><value>Sheet {0} of {1}</value></data>
   <data name="PageMenu.Remove" xml:space="preserve"><value>Remove page {0} of {1}</value></data>
   <data name="PageMenu.Turn" xml:space="preserve"><value>Turn page {0} by 90°</value></data>
@@ -149,4 +149,9 @@ The release has no installer for this computer. Open the release page?</value></
   <data name="Update.Mismatch" xml:space="preserve"><value>The downloaded installer does not match the release and was deleted.</value></data>
   <data name="Update.BalloonTitle" xml:space="preserve"><value>Update available</value></data>
   <data name="Update.BalloonText" xml:space="preserve"><value>Open-LeanPrint {0} is ready. Click here to install it.</value></data>
+  <data name="PageMenu.BlankBefore" xml:space="preserve"><value>Insert a blank page before page {0}</value></data>
+  <data name="PageMenu.BlankAfter" xml:space="preserve"><value>Insert a blank page after page {0}</value></data>
+  <data name="PageMenu.RemoveBlank" xml:space="preserve"><value>Remove this blank page</value></data>
+  <data name="PageMenu.AnotherBlank" xml:space="preserve"><value>Insert another blank page here</value></data>
+  <data name="Job.Blanks" xml:space="preserve"><value> · {0} blank</value></data>
 </root>

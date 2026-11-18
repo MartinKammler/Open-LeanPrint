@@ -67,7 +67,7 @@
   <data name="Job.Printing" xml:space="preserve"><value> · gedruckt: {0}</value></data>
   <data name="Job.Turned" xml:space="preserve"><value> · {0} gedreht</value></data>
   <data name="Preview.Hint" xml:space="preserve"><value>Hier erscheint das fertige Blatt.</value></data>
-  <data name="Preview.Tip" xml:space="preserve"><value>Rechtsklick auf eine Seite in der Vorschau entfernt sie.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Rechtsklick auf eine Seite in der Vorschau: entfernen, drehen oder eine leere Seite daneben einfügen.</value></data>
   <data name="Sheet.Label" xml:space="preserve"><value>Blatt {0} von {1}</value></data>
   <data name="PageMenu.Remove" xml:space="preserve"><value>Seite {0} von {1} entfernen</value></data>
   <data name="PageMenu.Turn" xml:space="preserve"><value>Seite {0} um 90° drehen</value></data>
@@ -149,4 +149,9 @@ Das Release enthält keinen Installer für diesen Computer. Release-Seite öffne
   <data name="Update.Mismatch" xml:space="preserve"><value>Der heruntergeladene Installer passt nicht zum Release und wurde gelöscht.</value></data>
   <data name="Update.BalloonTitle" xml:space="preserve"><value>Update verfügbar</value></data>
   <data name="Update.BalloonText" xml:space="preserve"><value>Open-LeanPrint {0} ist bereit. Hier klicken zum Installieren.</value></data>
+  <data name="PageMenu.BlankBefore" xml:space="preserve"><value>Leere Seite vor Seite {0} einfügen</value></data>
+  <data name="PageMenu.BlankAfter" xml:space="preserve"><value>Leere Seite nach Seite {0} einfügen</value></data>
+  <data name="PageMenu.RemoveBlank" xml:space="preserve"><value>Diese leere Seite entfernen</value></data>
+  <data name="PageMenu.AnotherBlank" xml:space="preserve"><value>Hier noch eine leere Seite einfügen</value></data>
+  <data name="Job.Blanks" xml:space="preserve"><value> · {0} leer</value></data>
 </root>

@@ -137,6 +137,10 @@ public sealed class PdfImposer
                 using var gfx = XGraphics.FromPdfPage(page);
                 foreach (var placed in sheet.Pages)
                 {
+                    // An inserted blank keeps its cell and nothing else - no
+                    // frame either, since a frame would print a page that is not there.
+                    if (placed.Source.IsBlank) continue;
+
                     var form = FormFor(placed.Source.DocumentIndex, placed.Source.PageIndex);
                     DrawPlaced(gfx, form, placed);
 

@@ -67,7 +67,7 @@
   <data name="Job.Printing" xml:space="preserve"><value> · imprimées : {0}</value></data>
   <data name="Job.Turned" xml:space="preserve"><value> · {0} tournée(s)</value></data>
   <data name="Preview.Hint" xml:space="preserve"><value>La feuille composée apparaît ici.</value></data>
-  <data name="Preview.Tip" xml:space="preserve"><value>Clic droit sur une page de l’aperçu pour la retirer.</value></data>
+  <data name="Preview.Tip" xml:space="preserve"><value>Clic droit sur une page de l’aperçu : la retirer, la tourner ou insérer une page vierge à côté.</value></data>
   <data name="Sheet.Label" xml:space="preserve"><value>Feuille {0} sur {1}</value></data>
   <data name="PageMenu.Remove" xml:space="preserve"><value>Retirer la page {0} de {1}</value></data>
   <data name="PageMenu.Turn" xml:space="preserve"><value>Tourner la page {0} de 90°</value></data>
@@ -149,4 +149,9 @@ Cette version ne contient pas d’installateur pour cet ordinateur. Ouvrir la pa
   <data name="Update.Mismatch" xml:space="preserve"><value>L’installateur téléchargé ne correspond pas à la version et a été supprimé.</value></data>
   <data name="Update.BalloonTitle" xml:space="preserve"><value>Mise à jour disponible</value></data>
   <data name="Update.BalloonText" xml:space="preserve"><value>Open-LeanPrint {0} est prête. Cliquez ici pour l’installer.</value></data>
+  <data name="PageMenu.BlankBefore" xml:space="preserve"><value>Insérer une page vierge avant la page {0}</value></data>
+  <data name="PageMenu.BlankAfter" xml:space="preserve"><value>Insérer une page vierge après la page {0}</value></data>
+  <data name="PageMenu.RemoveBlank" xml:space="preserve"><value>Retirer cette page vierge</value></data>
+  <data name="PageMenu.AnotherBlank" xml:space="preserve"><value>Insérer une autre page vierge ici</value></data>
+  <data name="Job.Blanks" xml:space="preserve"><value> · {0} vierge(s)</value></data>
 </root>

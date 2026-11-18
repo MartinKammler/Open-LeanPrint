@@ -14,6 +14,9 @@
         <Border DockPanel.Dock="Top" Background="{DynamicResource Panel}"
                 BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,10">
             <WrapPanel>
+                <!-- A label and its box are grouped so the toolbar wraps between
+                     them, never inside one: in German "Papier" ended one row and
+                     its drop-down started the next. -->
                 <Button x:Name="AddButton" Content="{l:Loc AddPdfs}" Click="AddJobs_Click"/>
                 <Button x:Name="RemoveButton" Content="{l:Loc Remove}" Click="RemoveJob_Click"/>
                 <ToggleButton x:Name="CollectToggle" Content="{l:Loc Collect}" Margin="6,0,0,0"
@@ -24,51 +27,65 @@
 
                 <Border Width="1" Background="{DynamicResource Line}" Margin="8,2,14,2"/>
 
-                <TextBlock Text="{l:Loc Layout}" Style="{StaticResource Label}" Margin="0,3,8,3"
-                           ToolTip="{l:Loc Layout.Tip}"/>
-                <ToggleButton x:Name="Preset1Up" Content="{l:Loc Preset.1up}" Click="Preset_Click" Tag="1x1"/>
-                <ToggleButton x:Name="Preset2Up" Content="{l:Loc Preset.2up}" Click="Preset_Click" Tag="2x1"
-                              ToolTip="{l:Loc Preset.2up.Tip}"/>
-                <ToggleButton x:Name="Preset4Up" Content="{l:Loc Preset.4up}" Click="Preset_Click" Tag="2x2" IsChecked="True"/>
-                <ToggleButton x:Name="Preset9Up" Content="{l:Loc Preset.9up}" Click="Preset_Click" Tag="3x3"/>
-                <ToggleButton x:Name="PresetBooklet" Content="{l:Loc Preset.Booklet}" Click="Preset_Click" Tag="booklet"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Loc Layout}" Style="{StaticResource Label}" Margin="0,3,8,3"
+                               ToolTip="{l:Loc Layout.Tip}"/>
+                    <ToggleButton x:Name="Preset1Up" Content="{l:Loc Preset.1up}" Click="Preset_Click" Tag="1x1"/>
+                    <ToggleButton x:Name="Preset2Up" Content="{l:Loc Preset.2up}" Click="Preset_Click" Tag="2x1"
+                                  ToolTip="{l:Loc Preset.2up.Tip}"/>
+                    <ToggleButton x:Name="Preset4Up" Content="{l:Loc Preset.4up}" Click="Preset_Click" Tag="2x2" IsChecked="True"/>
+                    <ToggleButton x:Name="Preset9Up" Content="{l:Loc Preset.9up}" Click="Preset_Click" Tag="3x3"/>
+                    <ToggleButton x:Name="PresetBooklet" Content="{l:Loc Preset.Booklet}" Click="Preset_Click" Tag="booklet"/>
+                </StackPanel>
 
-                <TextBlock Text="{l:Loc Grid}" Style="{StaticResource Label}"/>
-                <TextBox x:Name="GridBox" Width="62" Text="2x2" TextChanged="Grid_Changed"
-                         ToolTip="{l:Loc Grid.Tip}"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Loc Grid}" Style="{StaticResource Label}"/>
+                    <TextBox x:Name="GridBox" Width="62" Text="2x2" TextChanged="Grid_Changed"
+                             ToolTip="{l:Loc Grid.Tip}"/>
+                </StackPanel>
 
-                <TextBlock Text="{l:Loc Paper}" Style="{StaticResource Label}"/>
-                <ComboBox x:Name="PaperBox" Width="92" SelectionChanged="Paper_Changed"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Loc Paper}" Style="{StaticResource Label}"/>
+                    <ComboBox x:Name="PaperBox" Width="92" SelectionChanged="Paper_Changed"/>
+                </StackPanel>
 
-                <TextBlock Text="{l:Loc Margin}" Style="{StaticResource Label}"
-                           ToolTip="{l:Loc Margin.Tip}"/>
-                <TextBox x:Name="MarginBox" Text="8" TextChanged="Debounced_Changed"
-                         ToolTip="{l:Loc Margin.Tip}"/>
-                <TextBlock Text="{l:Loc Unit.Mm}" Style="{StaticResource Label}" Margin="4,3,0,3"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Loc Margin}" Style="{StaticResource Label}"
+                               ToolTip="{l:Loc Margin.Tip}"/>
+                    <TextBox x:Name="MarginBox" Text="8" TextChanged="Debounced_Changed"
+                             ToolTip="{l:Loc Margin.Tip}"/>
+                    <TextBlock Text="{l:Loc Unit.Mm}" Style="{StaticResource Label}" Margin="4,3,0,3"/>
+                </StackPanel>
 
-                <TextBlock Text="{l:Loc Gutter}" Style="{StaticResource Label}"
-                           ToolTip="{l:Loc Gutter.Tip}"/>
-                <TextBox x:Name="GutterBox" Text="2" TextChanged="Debounced_Changed"
-                         ToolTip="{l:Loc Gutter.Tip}"/>
-                <TextBlock Text="{l:Loc Unit.Mm}" Style="{StaticResource Label}" Margin="4,3,0,3"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Loc Gutter}" Style="{StaticResource Label}"
+                               ToolTip="{l:Loc Gutter.Tip}"/>
+                    <TextBox x:Name="GutterBox" Text="2" TextChanged="Debounced_Changed"
+                             ToolTip="{l:Loc Gutter.Tip}"/>
+                    <TextBlock Text="{l:Loc Unit.Mm}" Style="{StaticResource Label}" Margin="4,3,0,3"/>
+                </StackPanel>
 
                 <CheckBox x:Name="BorderToggle" Content="{l:Loc PageBorders}" Click="Border_Changed"
                           ToolTip="{l:Loc PageBorders.Tip}"/>
 
-                <TextBlock Text="{l:Loc Watermark}" Style="{StaticResource Label}"/>
-                <TextBox x:Name="WatermarkBox" Width="120" TextChanged="Debounced_Changed"
-                         ToolTip="{l:Loc Watermark.Tip}"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Loc Watermark}" Style="{StaticResource Label}"/>
+                    <TextBox x:Name="WatermarkBox" Width="120" TextChanged="Debounced_Changed"
+                             ToolTip="{l:Loc Watermark.Tip}"/>
+                </StackPanel>
 
                 <Border Width="1" Background="{DynamicResource Line}" Margin="14,2,10,2"/>
 
-                <TextBlock Text="{l:Loc Profile}" Style="{StaticResource Label}" Margin="0,0,6,0"/>
-                <ComboBox x:Name="ProfileBox" Width="150" IsEditable="True"
-                          SelectionChanged="Profile_Selected"
-                          ToolTip="{l:Loc Profile.Tip}"/>
-                <Button x:Name="SaveProfileButton" Content="{l:Loc Save}" Click="SaveProfile_Click" Margin="6,0,0,0"/>
-                <Button x:Name="DeleteProfileButton" Content="✕" Click="DeleteProfile_Click"
-                        ToolTip="{l:Loc DeleteProfile.Tip}"/>
-            </WrapPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{l:Loc Profile}" Style="{StaticResource Label}" Margin="0,0,6,0"/>
+                    <ComboBox x:Name="ProfileBox" Width="150" IsEditable="True"
+                              SelectionChanged="Profile_Selected"
+                              ToolTip="{l:Loc Profile.Tip}"/>
+                    <Button x:Name="SaveProfileButton" Content="{l:Loc Save}" Click="SaveProfile_Click" Margin="6,0,0,0"/>
+                    <Button x:Name="DeleteProfileButton" Content="✕" Click="DeleteProfile_Click"
+                            ToolTip="{l:Loc DeleteProfile.Tip}"/>
+            
+                </StackPanel></WrapPanel>
         </Border>
 
         <!-- Action bar: what leaves the app -->

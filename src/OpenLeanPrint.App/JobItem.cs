@@ -14,6 +14,9 @@ public sealed class JobItem : INotifyPropertyChanged
     /// <summary>Turns the user asked for, by 1-based page number.</summary>
     public Dictionary<int, int> Rotations { get; } = new();
 
+    /// <summary>Inserted blank pages: anchor (the page they follow, 0 = before page 1) → count.</summary>
+    public Dictionary<int, int> Blanks { get; } = new();
+
     public required string FilePath { get; init; }
     public required byte[] Pdf { get; init; }
     public required int PageCount { get; init; }
@@ -43,6 +46,8 @@ public sealed class JobItem : INotifyPropertyChanged
             string pages = Loc.Count("Job.Pages", PageCount);
             if (!_pages.IsAll) pages += Loc.Format("Job.Printing", _pages);
             if (Rotations.Count > 0) pages += Loc.Format("Job.Turned", Rotations.Count);
+            int blanks = Blanks.Values.Sum();
+            if (blanks > 0) pages += Loc.Format("Job.Blanks", blanks);
             return pages;
         }
     }

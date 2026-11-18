@@ -147,6 +147,14 @@ report.pdf", "Turn page 3 by 90°" — and for a removal the remaining pages flo
 up to fill the gap. The menu also offers to restore all pages of that job, or to
 put a turned page back upright.
 
+**Blank pages** go in from the same menu: *Insert a blank page before page 3* or
+*after page 3*. A blank takes a place on the sheet like a page and prints as
+nothing - to start a chapter on a right-hand page, to even out a booklet, or to
+leave room for notes. Right-click a blank to remove it or add another next to
+it. A blank belongs to the page it was put next to, so it stays there when the
+layout or the page selection changes; restoring all pages of the job takes the
+blanks away too.
+
 Removing is the quick way to do what the **Pages** box spells out; both edit the
 same selection, so whichever you use, the other shows it. Turning a page switches
 auto-rotation off for it: once you have said which way up you want it, the engine

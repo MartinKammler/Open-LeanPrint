@@ -15,6 +15,24 @@ public class PdfImposerTests
     }
 
     [Fact]
+    public void Compose_LeavesABlankCellEmpty_WithoutReadingAPageForIt()
+    {
+        // One real page and a blank whose PageIndex (its anchor) points past the
+        // end of the document: drawing it would fail, so composing proves it is skipped.
+        var pdf = TestPdfs.Colored(1);
+        var pages = new List<SourcePage?>
+        {
+            PdfImposer.ReadPageSizes(pdf)[0],
+            new SourcePage(0, 5, new PtSize(595, 842)) { IsBlank = true },
+        };
+        var layout = new NUpImposer().Impose(pages, ImpositionSettings.NUp(1, 2) with { SheetSize = PaperSizes.A4 });
+
+        var outPdf = new PdfImposer { PageBorder = new PageBorder() }.Compose(new[] { pdf }, layout);
+
+        Assert.Equal(1, Inspect(outPdf).PageCount);
+    }
+
+    [Fact]
     public void ReadPageSizes_ReturnsOnePagePerSourcePage()
     {
         var pdf = TestPdfs.Colored(3);
