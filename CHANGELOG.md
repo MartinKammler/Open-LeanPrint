@@ -4,6 +4,27 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-11-18
+
+### Added
+
+- **Updates from within the app.** At start the app asks GitHub for the newest
+  release of this fork. A newer one is offered - in a dialog, or in a balloon
+  when the window is in the tray - and on a yes the installer is downloaded,
+  checked against the size and SHA-256 GitHub publishes for it, and run. A file
+  that does not match is deleted, not run. *Check for updates…* in the tray menu
+  looks on demand; *Check for updates at start* switches the automatic check
+  off. PRIVACY.md says exactly what the request carries: the app's name and
+  version, nothing else.
+
+  The installer is started elevated on purpose. Its printer and service steps
+  run as the user and only get administrator rights when msiexec itself was
+  started with them; launched plainly, an upgrade removed the old printer and
+  quietly failed to create the new one.
+
+- **Open the window maximized.** A tray menu switch; when it is on, the window
+  comes up filling the screen at start and whenever it returns from the tray.
+
 ## [0.5.0] — 2026-11-18
 
 The first release of this fork of [Open-LeanPrint](https://github.com/azitc-ac/Open-LeanPrint) by Alexander

@@ -130,4 +130,23 @@ Windows will ask for administrator rights once - creating a printer queue requir
   <data name="Tray.Dark" xml:space="preserve"><value>Dark</value></data>
   <data name="Tray.Language" xml:space="preserve"><value>Language</value></data>
   <data name="Tray.Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Tray.OpenMaximized" xml:space="preserve"><value>Open the window maximized</value></data>
+  <data name="Tray.CheckUpdates" xml:space="preserve"><value>Check for updates…</value></data>
+  <data name="Tray.CheckOnStart" xml:space="preserve"><value>Check for updates at start</value></data>
+  <data name="Tray.InstallUpdate" xml:space="preserve"><value>Install update {0}…</value></data>
+  <data name="Update.Title" xml:space="preserve"><value>Open-LeanPrint update</value></data>
+  <data name="Update.UpToDate" xml:space="preserve"><value>You have the latest version ({0}).</value></data>
+  <data name="Update.CheckFailed" xml:space="preserve"><value>Could not check for updates: {0}</value></data>
+  <data name="Update.Available" xml:space="preserve"><value>Open-LeanPrint {0} is available - you have {1}.
+
+Download and install it now? Windows will ask for administrator rights once. Open-LeanPrint closes for the installation and starts again afterwards; the job pool is emptied.</value></data>
+  <data name="Update.NoInstaller" xml:space="preserve"><value>Open-LeanPrint {0} is available - you have {1}.
+
+The release has no installer for this computer. Open the release page?</value></data>
+  <data name="Update.Downloading" xml:space="preserve"><value>Downloading update {0}… {1} %</value></data>
+  <data name="Update.Cancelled" xml:space="preserve"><value>The update was cancelled.</value></data>
+  <data name="Update.DownloadFailed" xml:space="preserve"><value>The update could not be installed: {0}</value></data>
+  <data name="Update.Mismatch" xml:space="preserve"><value>The downloaded installer does not match the release and was deleted.</value></data>
+  <data name="Update.BalloonTitle" xml:space="preserve"><value>Update available</value></data>
+  <data name="Update.BalloonText" xml:space="preserve"><value>Open-LeanPrint {0} is ready. Click here to install it.</value></data>
 </root>

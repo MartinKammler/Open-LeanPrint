@@ -24,6 +24,14 @@ internal sealed class TrayPresence : IDisposable
     private readonly WinForms.ToolStripMenuItem _languageItem;
     private readonly Dictionary<LanguagePreference, WinForms.ToolStripMenuItem> _languageItems = new();
     private readonly WinForms.ToolStripMenuItem _showItem;
+    private readonly WinForms.ToolStripMenuItem _maximizedItem;
+    private readonly WinForms.ToolStripMenuItem _updateItem;
+    private readonly WinForms.ToolStripMenuItem _checkOnStartItem;
+    private string? _updateVersion;
+    private Action? _balloonClicked;
+
+    /// <summary>Set while the app mirrors its state into a toggle, so that does not count as a click.</summary>
+    private bool _mirroring;
     private readonly WinForms.ToolStripMenuItem _exitItem;
     private readonly WinForms.ToolStripMenuItem _hideNoticeItem;
     private bool _suppressCollectEvent;
@@ -81,6 +89,21 @@ internal sealed class TrayPresence : IDisposable
             _languageItem.DropDownItems.Add(item);
         }
 
+        _maximizedItem = new WinForms.ToolStripMenuItem { CheckOnClick = true };
+        _maximizedItem.CheckedChanged += (_, _) =>
+        {
+            if (!_mirroring) OpenMaximizedChanged?.Invoke(this, _maximizedItem.Checked);
+        };
+
+        _updateItem = new WinForms.ToolStripMenuItem();
+        _updateItem.Click += (_, _) => UpdateRequested?.Invoke(this, EventArgs.Empty);
+
+        _checkOnStartItem = new WinForms.ToolStripMenuItem { CheckOnClick = true };
+        _checkOnStartItem.CheckedChanged += (_, _) =>
+        {
+            if (!_mirroring) CheckOnStartChanged?.Invoke(this, _checkOnStartItem.Checked);
+        };
+
         var exitItem = _exitItem = new WinForms.ToolStripMenuItem();
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
@@ -90,8 +113,12 @@ internal sealed class TrayPresence : IDisposable
         menu.Items.Add(_collectItem);
         menu.Items.Add(_popUpItem);
         menu.Items.Add(_hideNoticeItem);
+        menu.Items.Add(_maximizedItem);
         menu.Items.Add(_appearanceItem);
         menu.Items.Add(_languageItem);
+        menu.Items.Add(new WinForms.ToolStripSeparator());
+        menu.Items.Add(_updateItem);
+        menu.Items.Add(_checkOnStartItem);
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(exitItem);
 
@@ -103,6 +130,16 @@ internal sealed class TrayPresence : IDisposable
             ContextMenuStrip = menu,
         };
         _icon.DoubleClick += (_, _) => ShowRequested?.Invoke(this, EventArgs.Empty);
+
+        // A balloon knows nothing of what it was about; the one shown last
+        // decides what a click on it does, and closing it forgets that.
+        _icon.BalloonTipClicked += (_, _) =>
+        {
+            var clicked = _balloonClicked;
+            _balloonClicked = null;
+            clicked?.Invoke();
+        };
+        _icon.BalloonTipClosed += (_, _) => _balloonClicked = null;
         Relabel();
     }
 
@@ -120,6 +157,39 @@ internal sealed class TrayPresence : IDisposable
         _languageItem.Text = Loc.Get("Tray.Language");
         _languageItems[LanguagePreference.System].Text = Loc.Get("Tray.SameAsWindows");
         _exitItem.Text = Loc.Get("Tray.Exit");
+        _maximizedItem.Text = Loc.Get("Tray.OpenMaximized");
+        _checkOnStartItem.Text = Loc.Get("Tray.CheckOnStart");
+        _updateItem.Text = _updateVersion is null
+            ? Loc.Get("Tray.CheckUpdates")
+            : Loc.Format("Tray.InstallUpdate", _updateVersion);
+    }
+
+    /// <summary>The user toggled "open the window maximized".</summary>
+    public event EventHandler<bool>? OpenMaximizedChanged;
+
+    /// <summary>The user toggled the check at start.</summary>
+    public event EventHandler<bool>? CheckOnStartChanged;
+
+    /// <summary>The user asked to check for updates - or to install the one found.</summary>
+    public event EventHandler? UpdateRequested;
+
+    public void SetOpenMaximized(bool maximized) => Mirror(_maximizedItem, maximized);
+
+    public void SetCheckOnStart(bool check) => Mirror(_checkOnStartItem, check);
+
+    /// <summary>Turns "Check for updates…" into "Install update 1.2.3…", or back with null.</summary>
+    public void SetUpdateAvailable(string? version)
+    {
+        _updateVersion = version;
+        Relabel();
+    }
+
+    private void Mirror(WinForms.ToolStripMenuItem item, bool value)
+    {
+        if (item.Checked == value) return;
+        _mirroring = true;
+        item.Checked = value;
+        _mirroring = false;
     }
 
     /// <summary>The user picked a language.</summary>
@@ -193,8 +263,11 @@ internal sealed class TrayPresence : IDisposable
     }
 
     /// <summary>Shows a balloon — used when something happens while the window is hidden.</summary>
-    public void Notify(string title, string text) =>
-        _icon.ShowBalloonTip(4000, title, text, WinForms.ToolTipIcon.Info);
+    public void Notify(string title, string text, Action? onClick = null)
+    {
+        _balloonClicked = onClick;
+        _icon.ShowBalloonTip(onClick is null ? 4000 : 10000, title, text, WinForms.ToolTipIcon.Info);
+    }
 
     private static Drawing.Icon LoadIcon()
     {

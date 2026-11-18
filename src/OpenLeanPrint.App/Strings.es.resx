@@ -130,4 +130,23 @@ Windows pedirá permisos de administrador una vez: crear una impresora los requi
   <data name="Tray.Dark" xml:space="preserve"><value>Oscuro</value></data>
   <data name="Tray.Language" xml:space="preserve"><value>Idioma</value></data>
   <data name="Tray.Exit" xml:space="preserve"><value>Salir</value></data>
+  <data name="Tray.OpenMaximized" xml:space="preserve"><value>Abrir la ventana maximizada</value></data>
+  <data name="Tray.CheckUpdates" xml:space="preserve"><value>Buscar actualizaciones…</value></data>
+  <data name="Tray.CheckOnStart" xml:space="preserve"><value>Buscar actualizaciones al iniciar</value></data>
+  <data name="Tray.InstallUpdate" xml:space="preserve"><value>Instalar la actualización {0}…</value></data>
+  <data name="Update.Title" xml:space="preserve"><value>Actualización de Open-LeanPrint</value></data>
+  <data name="Update.UpToDate" xml:space="preserve"><value>Tiene la versión más reciente ({0}).</value></data>
+  <data name="Update.CheckFailed" xml:space="preserve"><value>No se pudo buscar actualizaciones: {0}</value></data>
+  <data name="Update.Available" xml:space="preserve"><value>Open-LeanPrint {0} está disponible; usted tiene la {1}.
+
+¿Descargarla e instalarla ahora? Windows pedirá permisos de administrador una vez. Open-LeanPrint se cierra durante la instalación y se vuelve a abrir después; la lista de trabajos se vacía.</value></data>
+  <data name="Update.NoInstaller" xml:space="preserve"><value>Open-LeanPrint {0} está disponible; usted tiene la {1}.
+
+La versión no incluye instalador para este equipo. ¿Abrir la página de la versión?</value></data>
+  <data name="Update.Downloading" xml:space="preserve"><value>Descargando la actualización {0}… {1} %</value></data>
+  <data name="Update.Cancelled" xml:space="preserve"><value>La actualización se canceló.</value></data>
+  <data name="Update.DownloadFailed" xml:space="preserve"><value>No se pudo instalar la actualización: {0}</value></data>
+  <data name="Update.Mismatch" xml:space="preserve"><value>El instalador descargado no coincide con la versión y se eliminó.</value></data>
+  <data name="Update.BalloonTitle" xml:space="preserve"><value>Actualización disponible</value></data>
+  <data name="Update.BalloonText" xml:space="preserve"><value>Open-LeanPrint {0} está lista. Haga clic aquí para instalarla.</value></data>
 </root>

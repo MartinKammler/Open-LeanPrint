@@ -54,6 +54,12 @@ public sealed record AppSettings
 
     /// <summary>System, English, German, French or Spanish. Text for the same reason.</summary>
     public string Language { get; init; } = nameof(LanguagePreference.System);
+
+    /// <summary>Open the window maximized, at start and when it comes back from the tray.</summary>
+    public bool OpenMaximized { get; init; }
+
+    /// <summary>Ask GitHub for a newer release each time the app starts.</summary>
+    public bool CheckUpdatesOnStart { get; init; } = true;
     /// <summary>
     /// Announce with a balloon that closing the window only hid it. On by
     /// default, because the first time it is the only explanation of where the

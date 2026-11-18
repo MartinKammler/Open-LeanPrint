@@ -20,7 +20,8 @@ as on Intel.
 > makes a fork like this possible.
 >
 > This fork adds what I wanted for my own use — so far a **dark mode**, the
-> interface in **English, German, French and Spanish**, and a switch for the tray
+> interface in **English, German, French and Spanish**, **updates from within
+> the app**, an option to open the window maximized, and a switch for the tray
 > balloon after printing — and will keep going its own way.
 > What changed, and since when, is in the [changelog](CHANGELOG.md). Problems
 > with this fork belong here, not upstream.
@@ -98,8 +99,10 @@ Already have PDFs? Drop them straight on the window instead.
 
 ### Privacy
 
-Open-LeanPrint collects nothing and sends nothing — no telemetry, no update
-check, no server. It does handle your documents, because that is what it is for:
+Open-LeanPrint collects nothing and sends nothing about you — no telemetry, no
+server. The one connection it makes is the update check of this fork: at start
+it asks GitHub for the newest version number, and you can switch that off in the
+tray menu. It does handle your documents, because that is what it is for:
 [PRIVACY.md](PRIVACY.md) says exactly where they go and how long they stay.
 
 ### Code signing

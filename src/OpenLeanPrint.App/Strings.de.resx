@@ -130,4 +130,23 @@ Windows fragt dabei einmal nach Administratorrechten – ein Drucker lässt sich
   <data name="Tray.Dark" xml:space="preserve"><value>Dunkel</value></data>
   <data name="Tray.Language" xml:space="preserve"><value>Sprache</value></data>
   <data name="Tray.Exit" xml:space="preserve"><value>Beenden</value></data>
+  <data name="Tray.OpenMaximized" xml:space="preserve"><value>Fenster maximiert öffnen</value></data>
+  <data name="Tray.CheckUpdates" xml:space="preserve"><value>Nach Updates suchen…</value></data>
+  <data name="Tray.CheckOnStart" xml:space="preserve"><value>Beim Start nach Updates suchen</value></data>
+  <data name="Tray.InstallUpdate" xml:space="preserve"><value>Update {0} installieren…</value></data>
+  <data name="Update.Title" xml:space="preserve"><value>Open-LeanPrint-Update</value></data>
+  <data name="Update.UpToDate" xml:space="preserve"><value>Du hast die neueste Version ({0}).</value></data>
+  <data name="Update.CheckFailed" xml:space="preserve"><value>Die Suche nach Updates ist fehlgeschlagen: {0}</value></data>
+  <data name="Update.Available" xml:space="preserve"><value>Open-LeanPrint {0} ist verfügbar – du hast {1}.
+
+Jetzt herunterladen und installieren? Windows fragt dabei einmal nach Administratorrechten. Open-LeanPrint schließt sich für die Installation und startet danach neu; die Auftragsliste wird geleert.</value></data>
+  <data name="Update.NoInstaller" xml:space="preserve"><value>Open-LeanPrint {0} ist verfügbar – du hast {1}.
+
+Das Release enthält keinen Installer für diesen Computer. Release-Seite öffnen?</value></data>
+  <data name="Update.Downloading" xml:space="preserve"><value>Update {0} wird heruntergeladen… {1} %</value></data>
+  <data name="Update.Cancelled" xml:space="preserve"><value>Das Update wurde abgebrochen.</value></data>
+  <data name="Update.DownloadFailed" xml:space="preserve"><value>Das Update konnte nicht installiert werden: {0}</value></data>
+  <data name="Update.Mismatch" xml:space="preserve"><value>Der heruntergeladene Installer passt nicht zum Release und wurde gelöscht.</value></data>
+  <data name="Update.BalloonTitle" xml:space="preserve"><value>Update verfügbar</value></data>
+  <data name="Update.BalloonText" xml:space="preserve"><value>Open-LeanPrint {0} ist bereit. Hier klicken zum Installieren.</value></data>
 </root>

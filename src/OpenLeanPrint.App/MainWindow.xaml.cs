@@ -66,6 +66,10 @@ public partial class MainWindow : Window
 
     private bool _showOnCapture = true;
     private bool _noticeOnHide = true;
+    private bool _openMaximized;
+    private bool _checkUpdatesOnStart = true;
+    private UpdateInfo? _update;
+    private bool _updating;
 
     /// <summary>
     /// Jobs that were already waiting when collecting started. They go into the
@@ -133,6 +137,9 @@ public partial class MainWindow : Window
         _tray.ThemeChosen += (_, preference) => Dispatcher.Invoke(() => SetTheme(preference));
         _tray.LanguageChosen += (_, preference) => Dispatcher.Invoke(() => SetLanguage(preference));
         Loc.Changed += (_, _) => RefreshTexts();
+        _tray.OpenMaximizedChanged += (_, maximized) => Dispatcher.Invoke(() => SetOpenMaximized(maximized));
+        _tray.CheckOnStartChanged += (_, check) => Dispatcher.Invoke(() => SetCheckUpdatesOnStart(check));
+        _tray.UpdateRequested += (_, _) => Dispatcher.Invoke(() => _ = UpdateRequestedAsync());
 
         ThemeManager.Track(this);
         // Covers Windows switching on its own while "Same as Windows" is chosen.
@@ -160,6 +167,12 @@ public partial class MainWindow : Window
         var startupFiles = Environment.GetCommandLineArgs().Skip(1)
             .Where(path => File.Exists(path)).ToList();
         if (startupFiles.Count > 0) Loaded += (_, _) => LoadFiles(startupFiles);
+
+        // Not on Loaded: started into the tray, the window is never shown and
+        // Loaded never comes. Idle priority keeps the network out of the way of
+        // the first paint.
+        if (_checkUpdatesOnStart)
+            Dispatcher.InvokeAsync(() => _ = CheckForUpdatesAsync(manual: false), DispatcherPriority.ApplicationIdle);
     }
 
     // ---------- settings ----------
@@ -170,6 +183,8 @@ public partial class MainWindow : Window
         SetShowOnCapture(settings.ShowOnCapture);
         SetTheme(ThemeManager.TryParse(settings.Theme, out var theme) ? theme : ThemePreference.System);
         SetLanguage(Loc.TryParse(settings.Language, out var language) ? language : LanguagePreference.System);
+        SetOpenMaximized(settings.OpenMaximized);
+        SetCheckUpdatesOnStart(settings.CheckUpdatesOnStart);
         SetNoticeOnHide(settings.NoticeOnHide);
         _booklet = settings.Booklet;
         _rows = Math.Max(1, settings.Rows);
@@ -215,6 +230,8 @@ public partial class MainWindow : Window
         ShowOnCapture = _showOnCapture,
         Theme = ThemeManager.Preference.ToString(),
         Language = Loc.Preference.ToString(),
+        OpenMaximized = _openMaximized,
+        CheckUpdatesOnStart = _checkUpdatesOnStart,
         NoticeOnHide = _noticeOnHide,
     };
 
@@ -282,7 +299,8 @@ public partial class MainWindow : Window
     private void RestoreFromTray()
     {
         Show();
-        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        if (_openMaximized) WindowState = WindowState.Maximized;
+        else if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
         Activate();
     }
 
@@ -432,6 +450,128 @@ public partial class MainWindow : Window
     {
         _showOnCapture = show;
         _tray.SetShowOnCapture(show);
+    }
+
+    /// <summary>
+    /// Single entry point, so the tray menu and this cannot drift apart. Turning
+    /// it on maximizes now; turning it off leaves the window where it is rather
+    /// than shrinking it under the pointer.
+    /// </summary>
+    private void SetOpenMaximized(bool maximized)
+    {
+        _openMaximized = maximized;
+        _tray.SetOpenMaximized(maximized);
+        if (maximized) WindowState = WindowState.Maximized;
+    }
+
+    private void SetCheckUpdatesOnStart(bool check)
+    {
+        _checkUpdatesOnStart = check;
+        _tray.SetCheckOnStart(check);
+    }
+
+    // ---------- updates ----------
+
+    /// <summary>
+    /// A message box that works with the window hidden. Owned by a hidden
+    /// window, it would open behind everything or not at all - and these come
+    /// from the tray as often as from the window.
+    /// </summary>
+    private MessageBoxResult Say(string text, string title, MessageBoxButton buttons, MessageBoxImage image) =>
+        IsVisible ? MessageBox.Show(this, text, title, buttons, image)
+                  : MessageBox.Show(text, title, buttons, image);
+
+    /// <summary>The tray entry: install what was found, or look now.</summary>
+    private Task UpdateRequestedAsync() =>
+        _update is not null ? OfferUpdateAsync(_update) : CheckForUpdatesAsync(manual: true);
+
+    /// <summary>
+    /// Asks GitHub for a newer release. Asked for by hand, every outcome is
+    /// reported. At start only a newer version is worth a word: a failed check
+    /// - offline, a proxy, GitHub down - goes to the log, because a dialog
+    /// about it at every login would be the app's most frequent message.
+    /// </summary>
+    private async Task CheckForUpdatesAsync(bool manual)
+    {
+        if (_updating) return;
+        try
+        {
+            var update = await Updates.FindNewerAsync();
+            if (update is null)
+            {
+                if (manual)
+                    Say(Loc.Format("Update.UpToDate", Updates.Current), Loc.Get("Update.Title"),
+                                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            _update = update;
+            _tray.SetUpdateAvailable(update.Version.ToString());
+            App.Log($"update available: {update.Version}");
+
+            // Hidden in the tray, a dialog would arrive out of nowhere - at login,
+            // in front of whatever you are doing. A balloon can be ignored.
+            if (manual || IsVisible) await OfferUpdateAsync(update);
+            else
+                _tray.Notify(Loc.Get("Update.BalloonTitle"), Loc.Format("Update.BalloonText", update.Version),
+                             () => Dispatcher.Invoke(() => _ = OfferUpdateAsync(update)));
+        }
+        catch (Exception ex)
+        {
+            App.Log($"update check failed: {ex.Message}");
+            if (manual)
+                Say(Loc.Format("Update.CheckFailed", ex.Message), Loc.Get("Update.Title"),
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private async Task OfferUpdateAsync(UpdateInfo update)
+    {
+        if (_updating) return;
+
+        if (update.Installer is null)
+        {
+            // A release without an installer for this machine - an arm64 PC and
+            // an x64-only release, say. The page is the honest next step.
+            if (Say(Loc.Format("Update.NoInstaller", update.Version, Updates.Current),
+                                Loc.Get("Update.Title"), MessageBoxButton.YesNo, MessageBoxImage.Information)
+                == MessageBoxResult.Yes)
+                Updates.OpenPage(update.Page);
+            return;
+        }
+
+        if (Say(Loc.Format("Update.Available", update.Version, Updates.Current),
+                            Loc.Get("Update.Title"), MessageBoxButton.YesNo, MessageBoxImage.Question)
+            != MessageBoxResult.Yes)
+            return;
+
+        _updating = true;
+        try
+        {
+            var progress = new Progress<int>(p => StatusText.Text = Loc.Format("Update.Downloading", update.Version, p));
+            string msi = await Updates.DownloadAsync(update, progress);
+
+            if (!Updates.StartInstaller(msi))
+            {
+                StatusText.Text = Loc.Get("Update.Cancelled");
+                return;
+            }
+
+            // The installer stops this copy anyway and starts the new one when
+            // it is done; leaving first keeps its files free to be replaced.
+            App.Log($"installing update {update.Version}");
+            ExitForGood();
+        }
+        catch (Exception ex)
+        {
+            App.Log($"update failed: {ex.Message}");
+            Say(Loc.Format("Update.DownloadFailed", ex.Message), Loc.Get("Update.Title"),
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _updating = false;
+        }
     }
 
     /// <summary>Single entry point, so the tray menu and this cannot drift apart.</summary>

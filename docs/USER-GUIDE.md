@@ -189,6 +189,17 @@ Double-click the tray icon to bring it back, or use *Exit* there to really quit.
 A balloon says so each time the window goes; *Tell me when the window goes to
 the tray* in the tray menu switches it off.
 
+**Updates.** At every start the app asks GitHub whether a newer version of
+Open-LeanPrint exists. If one does, it says so - in a dialog, or in a balloon
+when it is sitting in the tray - and on your yes downloads the installer, checks
+it and runs it. Windows asks for administrator rights once; the app closes for
+the installation and starts again afterwards. *Check for updates…* in the tray
+menu looks on demand, *Check for updates at start* switches the automatic check
+off.
+
+**Window size.** *Open the window maximized* in the tray menu makes the window
+come up filling the screen, at start and every time it returns from the tray.
+
 **Language.** English, German, French or Spanish. The app follows Windows'
 display language, and *Language* in the tray menu fixes it to one of the four;
 the window changes at once. Numbers always follow Windows' regional format, so a
@@ -198,7 +209,7 @@ margin is typed 2,5 or 2.5 the way you are used to.
 it. *Appearance* in the tray menu can fix it to *Light* or *Dark* instead. The
 preview sheet stays white either way: it is a picture of paper.
 
-The app remembers your layout, paper, margins, printer, watermark, appearance, language and
+The app remembers your layout, paper, margins, printer, watermark, appearance, language, window size and
 whether it was collecting.
 
 ## Hands-free: watch

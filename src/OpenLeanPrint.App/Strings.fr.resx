@@ -130,4 +130,23 @@ Windows demandera une fois des droits d’administrateur – la création d’un
   <data name="Tray.Dark" xml:space="preserve"><value>Sombre</value></data>
   <data name="Tray.Language" xml:space="preserve"><value>Langue</value></data>
   <data name="Tray.Exit" xml:space="preserve"><value>Quitter</value></data>
+  <data name="Tray.OpenMaximized" xml:space="preserve"><value>Ouvrir la fenêtre agrandie</value></data>
+  <data name="Tray.CheckUpdates" xml:space="preserve"><value>Rechercher des mises à jour…</value></data>
+  <data name="Tray.CheckOnStart" xml:space="preserve"><value>Rechercher des mises à jour au démarrage</value></data>
+  <data name="Tray.InstallUpdate" xml:space="preserve"><value>Installer la mise à jour {0}…</value></data>
+  <data name="Update.Title" xml:space="preserve"><value>Mise à jour d’Open-LeanPrint</value></data>
+  <data name="Update.UpToDate" xml:space="preserve"><value>Vous avez la dernière version ({0}).</value></data>
+  <data name="Update.CheckFailed" xml:space="preserve"><value>Impossible de rechercher des mises à jour : {0}</value></data>
+  <data name="Update.Available" xml:space="preserve"><value>Open-LeanPrint {0} est disponible – vous avez la {1}.
+
+La télécharger et l’installer maintenant ? Windows demandera une fois des droits d’administrateur. Open-LeanPrint se ferme pendant l’installation et redémarre ensuite ; la liste des travaux est vidée.</value></data>
+  <data name="Update.NoInstaller" xml:space="preserve"><value>Open-LeanPrint {0} est disponible – vous avez la {1}.
+
+Cette version ne contient pas d’installateur pour cet ordinateur. Ouvrir la page de la version ?</value></data>
+  <data name="Update.Downloading" xml:space="preserve"><value>Téléchargement de la mise à jour {0}… {1} %</value></data>
+  <data name="Update.Cancelled" xml:space="preserve"><value>La mise à jour a été annulée.</value></data>
+  <data name="Update.DownloadFailed" xml:space="preserve"><value>La mise à jour n’a pas pu être installée : {0}</value></data>
+  <data name="Update.Mismatch" xml:space="preserve"><value>L’installateur téléchargé ne correspond pas à la version et a été supprimé.</value></data>
+  <data name="Update.BalloonTitle" xml:space="preserve"><value>Mise à jour disponible</value></data>
+  <data name="Update.BalloonText" xml:space="preserve"><value>Open-LeanPrint {0} est prête. Cliquez ici pour l’installer.</value></data>
 </root>

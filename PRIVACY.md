@@ -1,8 +1,12 @@
 # Privacy
 
-Open-LeanPrint collects nothing and sends nothing. There is no telemetry, no
-update check, no analytics, no account, and no server belonging to this project.
+Open-LeanPrint collects nothing and sends nothing about you. There is no
+telemetry, no analytics, no account, and no server belonging to this project.
 Nothing you print, open or configure reaches its author or anybody else.
+
+The one exception is the **update check** of this fork, described under
+[The network](#the-network): it asks GitHub which version is the newest, and
+you can switch it off.
 
 That said, a tool that catches your print jobs necessarily handles your
 documents. This is what it does with them, so you can decide for yourself
@@ -50,8 +54,21 @@ Delete any of these at any time; the program recreates what it needs.
 
 The only listener is on loopback: `http://localhost:6310/leanprint`, which is
 how Windows' own IPP class driver hands print jobs over. It is meant for the
-local machine and should not be exposed to a network. Nothing else in
-Open-LeanPrint opens a connection.
+local machine and should not be exposed to a network.
+
+The only outgoing connection is the **update check**. Each time the app starts -
+and when you choose *Check for updates…* in the tray menu - it sends one request
+to GitHub's public API, `api.github.com/repos/MartinKammler/Open-LeanPrint/releases/latest`.
+The request carries the app's name and version (`Open-LeanPrint/0.5.1`) in its
+User-Agent, because GitHub refuses requests without one, and nothing else: no
+identifier, nothing about the machine, nothing you printed. GitHub sees your IP
+address, as any website you visit does; what it does with it is governed by
+[GitHub's privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
+
+If a newer version exists, the installer is downloaded from that release only
+after you agree, checked against the size and SHA-256 that GitHub publishes for
+it, and run. *Check for updates at start* in the tray menu switches the
+automatic check off; nothing then leaves the machine unless you ask.
 
 ## Questions
 
