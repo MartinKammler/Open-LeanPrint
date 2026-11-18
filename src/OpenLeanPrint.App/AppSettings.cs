@@ -51,6 +51,12 @@ public sealed record AppSettings
 
     /// <summary>System, Light or Dark. Stored as text so the file stays readable.</summary>
     public string Theme { get; init; } = nameof(ThemePreference.System);
+    /// <summary>
+    /// Announce with a balloon that closing the window only hid it. On by
+    /// default, because the first time it is the only explanation of where the
+    /// window went; after "Print &amp; Close" a dozen times a day it is noise.
+    /// </summary>
+    public bool NoticeOnHide { get; init; } = true;
 
 
     /// <summary>Whether the app has already offered to create the printer.</summary>

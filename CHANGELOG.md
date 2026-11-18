@@ -19,6 +19,12 @@ All notable changes to Open-LeanPrint. The format follows
   themselves in fixed system colours, which no style can reach - a white
   drop-down or a black tick on a dark field. The light look is unchanged.
 
+- **The "Still collecting" balloon can be switched off.** It appears every time
+  the window goes to the tray - which, with *Print & Close*, is after every
+  print. The first time it explains where the window went; after that it is
+  noise. *Tell me when the window goes to the tray* in the tray menu turns it
+  off. It stays on by default.
+
 ## [0.4.2] — 2026-08-25
 
 ### Fixed

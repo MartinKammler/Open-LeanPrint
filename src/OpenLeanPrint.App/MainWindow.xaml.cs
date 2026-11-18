@@ -65,6 +65,7 @@ public partial class MainWindow : Window
     private bool _printerSetupOffered;
 
     private bool _showOnCapture = true;
+    private bool _noticeOnHide = true;
 
     /// <summary>
     /// Jobs that were already waiting when collecting started. They go into the
@@ -134,6 +135,7 @@ public partial class MainWindow : Window
         ThemeManager.Track(this);
         // Covers Windows switching on its own while "Same as Windows" is chosen.
         ThemeManager.Changed += (_, _) => _tray.SetTheme(ThemeManager.Preference, ThemeManager.IsDark);
+        _tray.NoticeOnHideChanged += (_, notice) => Dispatcher.Invoke(() => SetNoticeOnHide(notice));
 
         var settings = AppSettings.Load();
         ApplySettings(settings);
@@ -165,6 +167,7 @@ public partial class MainWindow : Window
         _printerSetupOffered = settings.PrinterSetupOffered;
         SetShowOnCapture(settings.ShowOnCapture);
         SetTheme(ThemeManager.TryParse(settings.Theme, out var theme) ? theme : ThemePreference.System);
+        SetNoticeOnHide(settings.NoticeOnHide);
         _booklet = settings.Booklet;
         _rows = Math.Max(1, settings.Rows);
         _columns = Math.Max(1, settings.Columns);
@@ -208,6 +211,7 @@ public partial class MainWindow : Window
         CollectCapturedJobs = CollectToggle.IsChecked == true,
         ShowOnCapture = _showOnCapture,
         Theme = ThemeManager.Preference.ToString(),
+        NoticeOnHide = _noticeOnHide,
     };
 
     private DuplexMode SelectedDuplex() =>
@@ -230,8 +234,9 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
-            _tray.Notify("Still collecting",
-                         "The pool is empty and Open-LeanPrint keeps collecting. Double-click the tray icon to bring it back.");
+            if (_noticeOnHide)
+                _tray.Notify("Still collecting",
+                             "The pool is empty and Open-LeanPrint keeps collecting. Double-click the tray icon to bring it back.");
             return;
         }
         base.OnClosing(e);
@@ -433,6 +438,13 @@ public partial class MainWindow : Window
         // Changed only fires when the colours change; choosing "Same as
         // Windows" while Windows is light moves the tick and nothing else.
         _tray.SetTheme(ThemeManager.Preference, ThemeManager.IsDark);
+    }
+
+    /// <summary>Single entry point, so the tray menu and this cannot drift apart.</summary>
+    private void SetNoticeOnHide(bool notice)
+    {
+        _noticeOnHide = notice;
+        _tray.SetNoticeOnHide(notice);
     }
 
     /// <summary>
