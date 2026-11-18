@@ -49,6 +49,13 @@ public sealed record AppSettings
     /// <summary>Bring the window up when a job arrives, the way a print dialog would.</summary>
     public bool ShowOnCapture { get; init; } = true;
 
+    /// <summary>
+    /// Announce with a balloon that closing the window only hid it. On by
+    /// default, because the first time it is the only explanation of where the
+    /// window went; after "Print &amp; Close" a dozen times a day it is noise.
+    /// </summary>
+    public bool NoticeOnHide { get; init; } = true;
+
 
     /// <summary>Whether the app has already offered to create the printer.</summary>
     public bool PrinterSetupOffered { get; init; }

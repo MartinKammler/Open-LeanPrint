@@ -65,6 +65,7 @@ public partial class MainWindow : Window
     private bool _printerSetupOffered;
 
     private bool _showOnCapture = true;
+    private bool _noticeOnHide = true;
 
     /// <summary>
     /// Jobs that were already waiting when collecting started. They go into the
@@ -129,6 +130,7 @@ public partial class MainWindow : Window
         _tray.ExitRequested += (_, _) => Dispatcher.Invoke(ExitForGood);
         _tray.CollectingChanged += (_, collecting) => Dispatcher.Invoke(() => SetCollecting(collecting));
         _tray.ShowOnCaptureChanged += (_, show) => Dispatcher.Invoke(() => SetShowOnCapture(show));
+        _tray.NoticeOnHideChanged += (_, notice) => Dispatcher.Invoke(() => SetNoticeOnHide(notice));
 
         var settings = AppSettings.Load();
         ApplySettings(settings);
@@ -159,6 +161,7 @@ public partial class MainWindow : Window
     {
         _printerSetupOffered = settings.PrinterSetupOffered;
         SetShowOnCapture(settings.ShowOnCapture);
+        SetNoticeOnHide(settings.NoticeOnHide);
         _booklet = settings.Booklet;
         _rows = Math.Max(1, settings.Rows);
         _columns = Math.Max(1, settings.Columns);
@@ -201,6 +204,7 @@ public partial class MainWindow : Window
         Profiles = _profiles.ToList(),
         CollectCapturedJobs = CollectToggle.IsChecked == true,
         ShowOnCapture = _showOnCapture,
+        NoticeOnHide = _noticeOnHide,
     };
 
     private DuplexMode SelectedDuplex() =>
@@ -223,8 +227,9 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
-            _tray.Notify("Still collecting",
-                         "The pool is empty and Open-LeanPrint keeps collecting. Double-click the tray icon to bring it back.");
+            if (_noticeOnHide)
+                _tray.Notify("Still collecting",
+                             "The pool is empty and Open-LeanPrint keeps collecting. Double-click the tray icon to bring it back.");
             return;
         }
         base.OnClosing(e);
@@ -417,6 +422,13 @@ public partial class MainWindow : Window
     {
         _showOnCapture = show;
         _tray.SetShowOnCapture(show);
+    }
+
+    /// <summary>Single entry point, so the tray menu and this cannot drift apart.</summary>
+    private void SetNoticeOnHide(bool notice)
+    {
+        _noticeOnHide = notice;
+        _tray.SetNoticeOnHide(notice);
     }
 
     /// <summary>

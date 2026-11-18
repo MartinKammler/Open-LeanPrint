@@ -18,8 +18,10 @@ internal sealed class TrayPresence : IDisposable
     private readonly WinForms.NotifyIcon _icon;
     private readonly WinForms.ToolStripMenuItem _collectItem;
     private readonly WinForms.ToolStripMenuItem _popUpItem;
+    private readonly WinForms.ToolStripMenuItem _hideNoticeItem;
     private bool _suppressCollectEvent;
     private bool _suppressPopUpEvent;
+    private bool _suppressHideNoticeEvent;
 
     public TrayPresence()
     {
@@ -38,6 +40,12 @@ internal sealed class TrayPresence : IDisposable
             if (!_suppressPopUpEvent) ShowOnCaptureChanged?.Invoke(this, _popUpItem.Checked);
         };
 
+        _hideNoticeItem = new WinForms.ToolStripMenuItem("Tell me when the window goes to the tray") { CheckOnClick = true };
+        _hideNoticeItem.CheckedChanged += (_, _) =>
+        {
+            if (!_suppressHideNoticeEvent) NoticeOnHideChanged?.Invoke(this, _hideNoticeItem.Checked);
+        };
+
         var exitItem = new WinForms.ToolStripMenuItem("Exit");
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
@@ -46,6 +54,7 @@ internal sealed class TrayPresence : IDisposable
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(_collectItem);
         menu.Items.Add(_popUpItem);
+        menu.Items.Add(_hideNoticeItem);
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(exitItem);
 
@@ -71,6 +80,9 @@ internal sealed class TrayPresence : IDisposable
     /// <summary>The user decided whether an arriving job should raise the window.</summary>
     public event EventHandler<bool>? ShowOnCaptureChanged;
 
+    /// <summary>The user decided whether hiding the window should be announced with a balloon.</summary>
+    public event EventHandler<bool>? NoticeOnHideChanged;
+
     /// <summary>Mirrors the app's state into the menu without raising <see cref="CollectingChanged"/>.</summary>
     public void SetCollecting(bool collecting)
     {
@@ -89,6 +101,16 @@ internal sealed class TrayPresence : IDisposable
         _suppressPopUpEvent = true;
         _popUpItem.Checked = show;
         _suppressPopUpEvent = false;
+    }
+
+    /// <summary>Mirrors the app's state into the menu without raising <see cref="NoticeOnHideChanged"/>.</summary>
+    public void SetNoticeOnHide(bool notice)
+    {
+        if (_hideNoticeItem.Checked == notice) return;
+
+        _suppressHideNoticeEvent = true;
+        _hideNoticeItem.Checked = notice;
+        _suppressHideNoticeEvent = false;
     }
 
     /// <summary>Shows a balloon — used when something happens while the window is hidden.</summary>
