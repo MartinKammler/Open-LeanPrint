@@ -417,6 +417,8 @@ public partial class MainWindow : Window
                 // is what keeps a job from being shown twice.
                 var watcher = new CapturedFolderWatcher(folder);
                 watcher.JobArrived += (_, path) => Dispatcher.Invoke(() => CollectJob(path));
+                watcher.HandlingFailed += (_, failure) =>
+                    App.Log($"could not take {Path.GetFileName(failure.Path)}: {failure.Error.Message}");
                 watcher.Start(includeExisting: true);
                 _capture.Add(watcher);
             }

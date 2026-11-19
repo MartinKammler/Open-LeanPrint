@@ -27,10 +27,11 @@ public sealed record IppPrinterOptions
     /// The largest request, and the largest document across a job's
     /// Send-Documents, that is accepted. Everything is held in memory until the
     /// job is stored, so without a ceiling one runaway client - anything on the
-    /// machine can reach the port - could take the service down. A gigabyte is
-    /// far beyond any document a print dialog produces.
+    /// machine can reach the port - could take the service down. 256 MiB is
+    /// far beyond any document a print dialog produces, and stays well under
+    /// the capture folder's size limit, so an accepted job always fits there.
     /// </summary>
-    public long MaxDocumentBytes { get; init; } = 1L << 30;
+    public long MaxDocumentBytes { get; init; } = 256L << 20;
 
     /// <summary>How long a job begun with Create-Job may wait for its next Send-Document before it is dropped.</summary>
     public TimeSpan PendingJobTimeout { get; init; } = TimeSpan.FromMinutes(30);
@@ -40,6 +41,24 @@ public sealed record IppPrinterOptions
 
     /// <summary>How many requests are worked on at the same time; the rest wait in the listener's queue.</summary>
     public int MaxConcurrentRequests { get; init; } = 8;
+
+    /// <summary>
+    /// The most time one request may take, body included. A client that sends
+    /// part of a request and then goes quiet would otherwise hold one of the
+    /// <see cref="MaxConcurrentRequests"/> slots for good; enough of them and
+    /// the printer stops answering. Five minutes moves the largest permitted
+    /// document many times over on the loopback.
+    /// </summary>
+    public TimeSpan RequestTimeout { get; init; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// How long stopping waits for requests already being worked on - a job
+    /// halfway through being stored - before cutting them off.
+    /// </summary>
+    public TimeSpan StopGracePeriod { get; init; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>How often jobs whose sender went quiet are looked for, independent of new traffic.</summary>
+    public TimeSpan AbandonedJobSweepInterval { get; init; } = TimeSpan.FromMinutes(1);
 }
 
 /// <summary>
@@ -62,9 +81,13 @@ public sealed class IppPrinterServer : IDisposable
 
     // Stable UUID advertised as printer-uuid (IPP Everywhere requires one).
     private const string PrinterUuid = "urn:uuid:6f4c6e50-7072-696e-7420-4f70656e4c50";
+    private readonly ConcurrentDictionary<Task, byte> _active = new();
+    private readonly object _admission = new();
     private int _nextJobId;
     private CancellationTokenSource? _cts;
     private Task? _acceptLoop;
+    private Timer? _sweeper;
+    private volatile bool _stopping;
 
     public IppPrinterServer(IppPrinterOptions? options = null)
     {
@@ -97,15 +120,38 @@ public sealed class IppPrinterServer : IDisposable
     public void Start()
     {
         if (_acceptLoop is not null) return;
+        _stopping = false;
         _cts = new CancellationTokenSource();
         _listener.Start();
         _acceptLoop = Task.Run(() => AcceptLoopAsync(_cts.Token));
+        // Abandoned jobs are otherwise only noticed when the next job comes in;
+        // on a quiet machine their buffers would stay for as long as it is quiet.
+        _sweeper = new Timer(_ => DropAbandonedJobs(), null,
+                             _options.AbandonedJobSweepInterval, _options.AbandonedJobSweepInterval);
     }
 
+    /// <summary>
+    /// Stops in order: no new requests are taken, the ones being worked on get
+    /// <see cref="IppPrinterOptions.StopGracePeriod"/> to finish - a job that is
+    /// being stored is stored, and its client hears so - and only then is
+    /// whatever is left cut off and the listener closed.
+    /// </summary>
     public async Task StopAsync()
     {
         if (_cts is null) return;
-        _cts.Cancel();
+
+        _stopping = true;
+        _sweeper?.Dispose();
+        _sweeper = null;
+
+        // A finished handler has handed its answer to the system, not yet to
+        // the client: closing the listener at once resets the connection and
+        // the answer with it - measured, the client saw "connection closed"
+        // for a job that had been stored. A moment is plenty on the loopback.
+        if (await WaitForActiveAsync(_options.StopGracePeriod).ConfigureAwait(false))
+            await Task.Delay(250).ConfigureAwait(false);
+
+        _cts.Cancel(); // ends what is still reading - see HandleRequestAsync
         try { _listener.Stop(); } catch { /* already stopping */ }
         if (_acceptLoop is not null)
         {
@@ -113,6 +159,19 @@ public sealed class IppPrinterServer : IDisposable
             catch (OperationCanceledException) { /* expected */ }
         }
         _acceptLoop = null;
+
+        // Cut off, they end quickly; the semaphore they release must outlive them.
+        await WaitForActiveAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+    }
+
+    /// <returns>True when there was anything to wait for.</returns>
+    private async Task<bool> WaitForActiveAsync(TimeSpan limit)
+    {
+        var running = _active.Keys.ToArray();
+        if (running.Length == 0) return false;
+        try { await Task.WhenAll(running).WaitAsync(limit).ConfigureAwait(false); }
+        catch (Exception) { /* timed out, or a handler failed - either way, move on */ }
+        return true;
     }
 
     private async Task AcceptLoopAsync(CancellationToken token)
@@ -133,6 +192,14 @@ public sealed class IppPrinterServer : IDisposable
                 break; // listener stopped
             }
 
+            // Stopping: nothing new is started, so the wait for what is running
+            // has an end.
+            if (_stopping)
+            {
+                try { context.Response.Abort(); } catch { /* ignore */ }
+                continue;
+            }
+
             // Back-pressure: with every slot busy the loop waits here, and new
             // connections queue in the listener instead of each getting a thread
             // and a buffer of its own.
@@ -146,22 +213,35 @@ public sealed class IppPrinterServer : IDisposable
                 break;
             }
 
-            _ = Task.Run(async () =>
+            // Tracked, not fire-and-forget: stopping waits for these.
+            var handler = Task.Run(async () =>
             {
-                try { await HandleRequestAsync(context).ConfigureAwait(false); }
+                try { await HandleRequestAsync(context, token).ConfigureAwait(false); }
                 finally { _slots.Release(); }
             }, CancellationToken.None);
+            _active.TryAdd(handler, 0);
+            _ = handler.ContinueWith(t => _active.TryRemove(t, out _), TaskScheduler.Default);
         }
     }
 
-    private async Task HandleRequestAsync(HttpListenerContext context)
+    private async Task HandleRequestAsync(HttpListenerContext context, CancellationToken stopping)
     {
+        // The deadline closes the connection rather than relying on the read
+        // honouring a token: a read that is waiting for bytes that never come
+        // ends when its connection does.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(stopping);
+        deadline.CancelAfter(_options.RequestTimeout);
+        using var cutOff = deadline.Token.Register(() =>
+        {
+            try { context.Response.Abort(); } catch { /* already gone */ }
+        });
+
         try
         {
             string method = context.Request.HttpMethod;
             string rawUrl = context.Request.RawUrl ?? "/";
 
-            byte[]? body = await ReadBodyAsync(context.Request, _options.MaxDocumentBytes).ConfigureAwait(false);
+            byte[]? body = await ReadBodyAsync(context.Request, _options.MaxDocumentBytes, deadline.Token).ConfigureAwait(false);
 
             IppMessage response;
             string outcome;
@@ -198,19 +278,19 @@ public sealed class IppPrinterServer : IDisposable
         }
         finally
         {
-            try { context.Response.OutputStream.Close(); } catch { /* ignore */ }
+            try { context.Response.Close(); } catch { /* ignore */ }
         }
     }
 
     /// <summary>The request body, or null as soon as it grows past <paramref name="limit"/>.</summary>
-    private static async Task<byte[]?> ReadBodyAsync(HttpListenerRequest request, long limit)
+    private static async Task<byte[]?> ReadBodyAsync(HttpListenerRequest request, long limit, CancellationToken cancel)
     {
         if (request.ContentLength64 > limit) return null;
 
         using var ms = new MemoryStream();
         var buffer = new byte[81920];
         int read;
-        while ((read = await request.InputStream.ReadAsync(buffer).ConfigureAwait(false)) > 0)
+        while ((read = await request.InputStream.ReadAsync(buffer, cancel).ConfigureAwait(false)) > 0)
         {
             if (ms.Length + read > limit) return null;
             ms.Write(buffer, 0, read);
@@ -227,6 +307,7 @@ public sealed class IppPrinterServer : IDisposable
             IppOperation.PrintJob => PrintJob(request),
             IppOperation.CreateJob => CreateJob(request),
             IppOperation.SendDocument => SendDocument(request),
+            IppOperation.CancelJob => CancelJob(request),
             IppOperation.GetJobAttributes => SimpleOk(request),
             IppOperation.GetJobs => SimpleOk(request),
             _ => NewResponse(request.RequestId, IppStatus.ServerErrorOperationNotSupported),
@@ -345,19 +426,47 @@ public sealed class IppPrinterServer : IDisposable
     private IppMessage CreateJob(IppMessage request)
     {
         DropAbandonedJobs();
-        if (_pendingJobs.Count >= _options.MaxPendingJobs)
-            return Failure(request.RequestId, IppStatus.ServerErrorBusy, "Too many jobs are open at once.");
 
-        int jobId = Interlocked.Increment(ref _nextJobId);
-        _pendingJobs[jobId] = new PendingJob
+        // Counting and adding as one step: checked separately, several
+        // Create-Jobs at once could each see room for one more.
+        int jobId;
+        lock (_admission)
         {
-            JobId = jobId,
-            JobName = request.FindAttribute("job-name")?.AsString(),
-            UserName = request.FindAttribute("requesting-user-name")?.AsString(),
-            Sides = request.FindAttribute("sides")?.AsString(),
-            ColorMode = request.FindAttribute("print-color-mode")?.AsString(),
-        };
+            if (_pendingJobs.Count >= _options.MaxPendingJobs)
+                return Failure(request.RequestId, IppStatus.ServerErrorBusy, "Too many jobs are open at once.");
+
+            jobId = Interlocked.Increment(ref _nextJobId);
+            _pendingJobs[jobId] = new PendingJob
+            {
+                JobId = jobId,
+                JobName = request.FindAttribute("job-name")?.AsString(),
+                UserName = request.FindAttribute("requesting-user-name")?.AsString(),
+                Sides = request.FindAttribute("sides")?.AsString(),
+                ColorMode = request.FindAttribute("print-color-mode")?.AsString(),
+            };
+        }
         return JobResponse(request, jobId, IppJobState.Pending, "none");
+    }
+
+    /// <summary>
+    /// Cancels a job that is still waiting for its documents - what Windows
+    /// sends when somebody cancels a print halfway. A job that is already
+    /// complete has been handed on and cannot be called back.
+    /// </summary>
+    private IppMessage CancelJob(IppMessage request)
+    {
+        int jobId = request.FindAttribute("job-id")?.AsInt() ?? 0;
+        if (jobId == 0 || !_pendingJobs.TryGetValue(jobId, out var pending))
+            return Failure(request.RequestId, IppStatus.ClientErrorNotFound, "No such job is open.");
+
+        lock (pending)
+        {
+            if (pending.Closed)
+                return Failure(request.RequestId, IppStatus.ClientErrorNotFound, "No such job is open.");
+            Close(jobId, pending);
+        }
+        RequestLog?.Invoke(this, $"job {jobId} dropped: cancelled by the client");
+        return JobResponse(request, jobId, IppJobState.Canceled, "job-canceled-by-user");
     }
 
     private IppMessage SendDocument(IppMessage request)
@@ -541,8 +650,10 @@ public sealed class IppPrinterServer : IDisposable
     public void Dispose()
     {
         try { StopAsync().GetAwaiter().GetResult(); } catch { /* ignore */ }
+        _sweeper?.Dispose();
         _cts?.Dispose();
-        _slots.Dispose();
+        // Only once no handler is left that could still release it.
+        if (_active.IsEmpty) _slots.Dispose();
         (_listener as IDisposable).Dispose();
     }
 

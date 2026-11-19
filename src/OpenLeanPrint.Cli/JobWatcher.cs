@@ -39,6 +39,8 @@ internal sealed class JobWatcher : IDisposable
         _watcher.JobArrived += (_, path) => Process(path);
         _watcher.JobTimedOut += (_, path) =>
             Console.Error.WriteLine($"  ! {Path.GetFileName(path)}: still being written - skipped.");
+        _watcher.HandlingFailed += (_, failure) =>
+            Console.Error.WriteLine($"  ! {Path.GetFileName(failure.Path)}: {failure.Error.Message}");
     }
 
     /// <summary>Watches until <paramref name="token"/> is cancelled.</summary>

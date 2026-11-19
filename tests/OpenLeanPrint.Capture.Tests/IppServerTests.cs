@@ -297,4 +297,125 @@ public class IppServerTests
         Assert.Equal(40, stored.Distinct().Count());
         await server.StopAsync();
     }
+
+    private static IppMessage CancelJobRequest(IppPrinterOptions options, int jobId)
+    {
+        var cancel = NewRequest(IppOperation.CancelJob, options.PrinterUri);
+        cancel.FirstGroup(IppTag.OperationAttributes)!.Add(new IppAttribute("job-id", IppTag.Integer, jobId));
+        return cancel;
+    }
+
+    [Fact]
+    public async Task CancelJob_EndsAnOpenJob_AsTheClientAskedFor()
+    {
+        var options = new IppPrinterOptions { Port = FreePort() };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        int jobId = await CreateJobAsync(options);
+        var cancelled = await PostAsync(options.HttpPrefix, CancelJobRequest(options, jobId));
+
+        Assert.Equal(IppStatus.SuccessfulOk, cancelled.Status);
+        Assert.Equal((int)IppJobState.Canceled, cancelled.FirstGroup(IppTag.JobAttributes)!.Find("job-state")!.AsInt());
+        Assert.Equal(IppStatus.ClientErrorNotFound,
+            (await PostAsync(options.HttpPrefix, SendDocument(options, jobId, new byte[10], last: true))).Status);
+        Assert.Equal(IppStatus.ClientErrorNotFound,
+            (await PostAsync(options.HttpPrefix, CancelJobRequest(options, jobId))).Status);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task OpenJobs_AreCountedExactly_EvenWhenCreatedAllAtOnce()
+    {
+        var options = new IppPrinterOptions { Port = FreePort(), MaxPendingJobs = 5 };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 40)
+            .Select(_ => PostAsync(options.HttpPrefix, NewRequest(IppOperation.CreateJob, options.PrinterUri))));
+
+        Assert.Equal(5, responses.Count(r => r.Status == IppStatus.SuccessfulOk));
+        Assert.Equal(35, responses.Count(r => r.Status == IppStatus.ServerErrorBusy));
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task AnAbandonedJob_IsDropped_WithoutAnyNewTraffic()
+    {
+        var options = new IppPrinterOptions
+        {
+            Port = FreePort(),
+            PendingJobTimeout = TimeSpan.FromMilliseconds(200),
+            AbandonedJobSweepInterval = TimeSpan.FromMilliseconds(100),
+        };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        await CreateJobAsync(options);
+        await Task.Delay(800);
+
+        // Get-Printer-Attributes does not tidy up itself, it only reports.
+        var attributes = await PostAsync(options.HttpPrefix, NewRequest(IppOperation.GetPrinterAttributes, options.PrinterUri));
+        Assert.Equal(0, attributes.FirstGroup(IppTag.PrinterAttributes)!.Find("queued-job-count")!.AsInt());
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task AClientThatStopsSending_DoesNotKeepThePrinterBusy()
+    {
+        var options = new IppPrinterOptions
+        {
+            Port = FreePort(),
+            MaxConcurrentRequests = 1,
+            RequestTimeout = TimeSpan.FromSeconds(1),
+        };
+        using var server = new IppPrinterServer(options);
+        server.Start();
+
+        // Takes the only slot: promises a body and sends a sliver of it.
+        using var stalled = new TcpClient();
+        await stalled.ConnectAsync(IPAddress.Loopback, options.Port);
+        var stream = stalled.GetStream();
+        byte[] head = System.Text.Encoding.ASCII.GetBytes(
+            $"POST /{options.ResourcePath} HTTP/1.1\r\nHost: localhost:{options.Port}\r\n" +
+            "Content-Type: application/ipp\r\nContent-Length: 100000\r\n\r\n");
+        await stream.WriteAsync(head);
+        await stream.WriteAsync(new byte[16]);
+        await stream.FlushAsync();
+        await Task.Delay(200);
+
+        var answer = await PostAsync(options.HttpPrefix, NewRequest(IppOperation.GetPrinterAttributes, options.PrinterUri))
+            .WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(IppStatus.SuccessfulOk, answer.Status);
+        await server.StopAsync();
+    }
+
+    [Fact]
+    public async Task Stopping_LetsAJobThatIsBeingStoredFinish()
+    {
+        var options = new IppPrinterOptions { Port = FreePort() };
+        using var storing = new ManualResetEventSlim(false);
+        bool stored = false;
+        using var server = new IppPrinterServer(options)
+        {
+            StoreJob = _ =>
+            {
+                storing.Set();
+                Thread.Sleep(1000); // a slow disk
+                stored = true;
+                return true;
+            },
+        };
+        server.Start();
+
+        var printing = PostAsync(options.HttpPrefix, PrintJobRequest(options, TestPdfs.WithPages((595, 842))));
+        Assert.True(storing.Wait(TimeSpan.FromSeconds(10)));
+
+        await server.StopAsync();
+
+        Assert.True(stored);
+        var response = await printing.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal(IppStatus.SuccessfulOk, response.Status);
+    }
 }

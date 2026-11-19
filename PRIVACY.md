@@ -22,7 +22,7 @@ archive:
 |---|---|
 | Where it lands | `%ProgramData%\Open-LeanPrint\captured` when the Windows service catches it, `%LOCALAPPDATA%\Open-LeanPrint\captured` when the app or the console host does |
 | How long it stays | until the app reads it into its job pool, which deletes it immediately |
-| If no app is running | it waits, and the service removes it after 7 days or 500 MB, whichever comes first |
+| If no app is running | it waits, and the service removes it after 7 days or 500 MB, whichever comes first (the size limit spares jobs younger than a day) |
 | When you uninstall | the folder is removed |
 
 PDFs you open or drag in yourself are read where they are and never moved,

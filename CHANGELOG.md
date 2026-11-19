@@ -4,6 +4,43 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] — 2026-11-19
+
+Robustness, from a second review of the capture path.
+
+### Fixed
+
+- **A large job could be deleted right after it was accepted.** The service
+  tidies the capture folder after storing each job, down to 500 MB, oldest
+  first. A single job over 500 MB - or a new one landing in a folder already
+  full of uncollected jobs - was deleted by that very pass, after Windows had
+  been told it was printed. The size limit now only removes jobs older than a
+  day, and the largest job accepted is 256 MB instead of 1 GB, so an accepted
+  job always fits.
+- **A job could be ignored after the service restarted.** The service numbers
+  jobs from 1 again after a restart, so once `job-0001.pdf` had been collected
+  and deleted, the next `job-0001.pdf` looked already handled to a running app
+  and stayed in the folder until the app was restarted. A name counts as handled
+  only while its file is there.
+- **One failing job could stop collecting altogether.** An error while taking
+  a job ended the thread that watches the capture folder, and every later job
+  stayed where it was. Such an error is now logged and the next job is taken.
+- **Stopping the service cut off jobs being stored.** Requests already being
+  worked on now get up to 10 seconds to finish - a job that is being written
+  is written, and Windows hears so - before the rest is cut off.
+
+### Changed
+
+- **A client that stops sending no longer ties up the printer.** Every request
+  has five minutes to arrive; one that goes quiet halfway is cut off instead of
+  holding one of the eight request slots for good.
+- **Cancelling a print halfway is understood.** The printer always said it
+  could cancel jobs but did not; Cancel-Job now ends a job that is still
+  waiting for its documents.
+- **Abandoned jobs are cleared on a quiet machine too.** Half-sent jobs used to
+  be dropped only when the next job came in; a timer now looks every minute.
+- The limit of 32 open jobs is now counted exactly when many arrive at once.
+
 ## [0.5.6] — 2026-11-18
 
 ### Fixed

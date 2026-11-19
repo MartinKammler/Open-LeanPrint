@@ -21,6 +21,16 @@ public static class CapturedFolder
     /// <summary>Total size the folder is allowed to reach before the oldest go.</summary>
     public const long DefaultMaxBytes = 500L * 1024 * 1024;
 
+    /// <summary>
+    /// How old a job must be before the size limit may remove it. A job the
+    /// print queue has just been told was printed is not spare space: until the
+    /// app has taken it, this file is the only copy. Without this, one large job
+    /// - or a folder already full of ones nobody has collected yet - had the job
+    /// that just arrived deleted by the very pass that followed storing it.
+    /// The age limit still applies to everything.
+    /// </summary>
+    public static readonly TimeSpan DefaultSizeGrace = TimeSpan.FromDays(1);
+
     /// <summary>Only files the capture host itself writes are ever touched.</summary>
     private static readonly string[] Patterns = { "job-*.pdf", "job-*.bin" };
 
@@ -33,10 +43,12 @@ public static class CapturedFolder
     /// <summary>
     /// Removes captured jobs that are older than <paramref name="maxAge"/>, then
     /// the oldest remaining ones until the folder fits in
-    /// <paramref name="maxBytes"/>. A file that cannot be deleted is left alone:
-    /// housekeeping must never be the reason capturing stops.
+    /// <paramref name="maxBytes"/> - but only among those older than
+    /// <paramref name="sizeGrace"/> (<see cref="DefaultSizeGrace"/> when null),
+    /// so a fresh job is never what makes room. A file that cannot be deleted
+    /// is left alone: housekeeping must never be the reason capturing stops.
     /// </summary>
-    public static PruneResult Prune(string folder, TimeSpan maxAge, long maxBytes)
+    public static PruneResult Prune(string folder, TimeSpan maxAge, long maxBytes, TimeSpan? sizeGrace = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         if (!Directory.Exists(folder)) return new PruneResult(0, 0);
@@ -52,11 +64,12 @@ public static class CapturedFolder
         long bytes = 0;
         long total = jobs.Sum(file => file.Length);
         DateTime cutoff = DateTime.UtcNow - maxAge;
+        DateTime freshSince = DateTime.UtcNow - (sizeGrace ?? DefaultSizeGrace);
 
         foreach (var job in jobs)
         {
             bool tooOld = maxAge > TimeSpan.Zero && job.LastWriteTimeUtc < cutoff;
-            bool tooMany = maxBytes > 0 && total > maxBytes;
+            bool tooMany = maxBytes > 0 && total > maxBytes && job.LastWriteTimeUtc < freshSince;
             if (!tooOld && !tooMany) continue;
 
             long size = job.Length;

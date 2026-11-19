@@ -86,6 +86,52 @@ public class CapturedFolderWatcherTests : IDisposable
     }
 
     [Fact]
+    public void AHandlerThatThrows_DoesNotStopTheWatcher()
+    {
+        using var watcher = new CapturedFolderWatcher(_folder);
+        int failures = 0;
+        watcher.HandlingFailed += (_, _) => Interlocked.Increment(ref failures);
+        var arrived = new List<string>();
+        watcher.JobArrived += (_, path) =>
+        {
+            bool first;
+            lock (arrived) { arrived.Add(path); first = arrived.Count == 1; }
+            if (first) throw new InvalidOperationException("subscriber bug");
+        };
+
+        watcher.Start();
+        File.WriteAllBytes(Path.Combine(_folder, "job-0001.pdf"), new byte[64]);
+        Thread.Sleep(1500);
+        File.WriteAllBytes(Path.Combine(_folder, "job-0002.pdf"), new byte[64]);
+        SpinWait.SpinUntil(() => { lock (arrived) return arrived.Count >= 2; }, 15000);
+
+        lock (arrived) Assert.Equal(2, arrived.Count);
+        Assert.Equal(1, failures);
+    }
+
+    [Fact]
+    public void ANameUsedAgain_AfterTheFirstJobWasDeleted_IsANewJob()
+    {
+        // The capture service numbers jobs from 1 after every restart: once
+        // job-0001.pdf was collected and deleted, the next one can be called
+        // job-0001.pdf again - and used to be ignored as already handled.
+        string path = Path.Combine(_folder, "job-0001.pdf");
+        using var watcher = new CapturedFolderWatcher(_folder);
+
+        var arrived = Collect(watcher, 2, () =>
+        {
+            watcher.Start();
+            File.WriteAllBytes(path, new byte[64]);
+            Thread.Sleep(1500);
+            File.Delete(path);
+            Thread.Sleep(500);
+            File.WriteAllBytes(path, new byte[128]);
+        });
+
+        Assert.Equal(2, arrived.Count);
+    }
+
+    [Fact]
     public void RaisesJobArrived_ForANewFile()
     {
         using var watcher = new CapturedFolderWatcher(_folder);

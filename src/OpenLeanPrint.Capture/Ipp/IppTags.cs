@@ -78,6 +78,7 @@ public enum IppJobState
     Pending = 3,
     PendingHeld = 4,
     Processing = 5,
+    Canceled = 7,
     Aborted = 8,
     Completed = 9,
 }

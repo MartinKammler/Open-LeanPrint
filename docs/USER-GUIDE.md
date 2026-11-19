@@ -359,7 +359,8 @@ folder is empty.
 What can be left in it are jobs printed while no app was running to take them.
 Those wait, and the service clears them up after **7 days, or 500 MB, whichever
 comes first**, oldest first — only files it wrote itself (`job-*.pdf`) are ever
-touched. `--keep-days N` and `--keep-mb N` change the limits; `0` switches either
+touched. The size limit only ever removes jobs older than a day: a job that has
+just arrived is never what makes room, however full the folder is. `--keep-days N` and `--keep-mb N` change the limits; `0` switches either
 off. Uninstalling removes the folder outright.
 
 PDFs you dragged in yourself are never deleted, whatever happens to the pool.

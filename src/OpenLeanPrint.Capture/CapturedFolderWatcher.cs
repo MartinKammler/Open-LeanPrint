@@ -20,6 +20,12 @@ namespace OpenLeanPrint.Capture;
 /// <see cref="ReconcileInterval"/> - and a file that timed out is tried again,
 /// up to <see cref="MaxAttempts"/> times, before it is given up on.
 /// </para>
+/// <para>
+/// A path counts as handled only while its file exists. The capture service
+/// numbers jobs from 1 again whenever it restarts, so once a job has been
+/// collected and deleted, a new job can arrive under the very same name - and
+/// must be seen as new, not as the old one again.
+/// </para>
 /// </summary>
 public sealed class CapturedFolderWatcher : IDisposable
 {
@@ -44,6 +50,9 @@ public sealed class CapturedFolderWatcher : IDisposable
         _watcher.Created += (_, e) => Enqueue(e.FullPath);
         // Some writers create a temp file and rename it into place.
         _watcher.Renamed += (_, e) => Enqueue(e.FullPath);
+        // Renamed away or deleted: the name is free for a new job.
+        _watcher.Renamed += (_, e) => Forget(e.OldFullPath);
+        _watcher.Deleted += (_, e) => Forget(e.FullPath);
         // A buffer overflow means events were lost; the folder still knows.
         _watcher.Error += (_, _) => Reconcile();
     }
@@ -68,6 +77,13 @@ public sealed class CapturedFolderWatcher : IDisposable
 
     /// <summary>A file never stopped changing within <see cref="CompletionTimeout"/>, <see cref="MaxAttempts"/> times over.</summary>
     public event EventHandler<string>? JobTimedOut;
+
+    /// <summary>
+    /// Handling a file failed - a <see cref="JobArrived"/> handler threw, or the
+    /// file could not be looked at. The watcher carries on with the next file;
+    /// this is for logging.
+    /// </summary>
+    public event EventHandler<(string Path, Exception Error)>? HandlingFailed;
 
     /// <summary>Starts watching. <paramref name="includeExisting"/> also picks up what is already there.</summary>
     public void Start(bool includeExisting = false)
@@ -126,19 +142,16 @@ public sealed class CapturedFolderWatcher : IDisposable
         {
             foreach (string path in _queue.GetConsumingEnumerable(token))
             {
-                if (WaitUntilComplete(path, CompletionTimeout))
+                // One file going wrong - a handler that throws, a file nobody
+                // may open - must not end this thread: every job after it would
+                // silently stay in the folder.
+                try
                 {
-                    JobArrived?.Invoke(this, path);
+                    Handle(path);
                 }
-                else if (!File.Exists(path))
+                catch (Exception ex)
                 {
-                    // Gone before it settled - removed, or renamed into its
-                    // real name, which raises an event of its own.
-                    lock (_seen) _attempts.Remove(path);
-                }
-                else if (GiveUp(path))
-                {
-                    JobTimedOut?.Invoke(this, path);
+                    try { HandlingFailed?.Invoke(this, (path, ex)); } catch (Exception) { /* logging must not stop us either */ }
                 }
             }
         }
@@ -148,10 +161,34 @@ public sealed class CapturedFolderWatcher : IDisposable
         }
     }
 
-    /// <summary>
-    /// Waits until a file has stopped growing and is no longer locked by its
-    /// writer. Returns false if it never settled.
-    /// </summary>
+    private void Handle(string path)
+    {
+        if (WaitUntilComplete(path, CompletionTimeout))
+        {
+            JobArrived?.Invoke(this, path);
+        }
+        else if (!File.Exists(path))
+        {
+            // Gone before it settled - removed, or renamed into its real name,
+            // which raises an event of its own.
+            Forget(path);
+        }
+        else if (GiveUp(path))
+        {
+            JobTimedOut?.Invoke(this, path);
+        }
+    }
+
+    /// <summary>The file is gone; a new one under this name is a new job.</summary>
+    private void Forget(string path)
+    {
+        lock (_seen)
+        {
+            _seen.Remove(path);
+            _attempts.Remove(path);
+        }
+    }
+
     /// <summary>
     /// Counts a timed-out attempt. Under the limit the file is forgotten, so the
     /// next comparison with the folder queues it again.
@@ -173,12 +210,22 @@ public sealed class CapturedFolderWatcher : IDisposable
         }
     }
 
-    /// <summary>Queues every file in the folder that has not been handled yet.</summary>
+    /// <summary>
+    /// Queues every file in the folder that has not been handled yet, and
+    /// forgets handled files that are gone - their delete event may have been
+    /// among the lost ones.
+    /// </summary>
     private void Reconcile()
     {
         try
         {
-            foreach (string path in Directory.EnumerateFiles(Folder, _watcher.Filter)) Enqueue(path);
+            var present = new HashSet<string>(Directory.EnumerateFiles(Folder, _watcher.Filter),
+                                              StringComparer.OrdinalIgnoreCase);
+            lock (_seen)
+            {
+                _seen.RemoveWhere(path => !present.Contains(path));
+            }
+            foreach (string path in present) Enqueue(path);
         }
         catch (Exception)
         {
@@ -186,6 +233,10 @@ public sealed class CapturedFolderWatcher : IDisposable
         }
     }
 
+    /// <summary>
+    /// Waits until a file has stopped growing and is no longer locked by its
+    /// writer. Returns false if it never settled.
+    /// </summary>
     private static bool WaitUntilComplete(string path, TimeSpan timeout)
     {
         DateTime deadline = DateTime.UtcNow + timeout;

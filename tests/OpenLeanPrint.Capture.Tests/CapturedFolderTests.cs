@@ -43,10 +43,39 @@ public class CapturedFolderTests : IDisposable
         Job("job-0003.pdf", 400, TimeSpan.FromHours(1));
 
         // Room for one and a bit: the two oldest have to go.
-        var removed = CapturedFolder.Prune(_folder, TimeSpan.Zero, maxBytes: 500);
+        var removed = CapturedFolder.Prune(_folder, TimeSpan.Zero, maxBytes: 500, sizeGrace: TimeSpan.Zero);
 
         Assert.Equal(2, removed.Files);
         Assert.Equal(800, removed.Bytes);
+        Assert.True(File.Exists(Path.Combine(_folder, "job-0003.pdf")));
+    }
+
+    [Fact]
+    public void AJobLargerThanTheLimit_IsNotDeletedRightAfterItArrived()
+    {
+        // The service prunes straight after storing a job. A job that alone
+        // exceeds the limit used to be deleted by that pass - after Windows had
+        // been told it was printed, before the app could collect it.
+        string fresh = Job("job-0001.pdf", 600, TimeSpan.FromSeconds(1));
+
+        var removed = CapturedFolder.Prune(_folder, CapturedFolder.DefaultMaxAge, maxBytes: 500);
+
+        Assert.False(removed.RemovedAnything);
+        Assert.True(File.Exists(fresh));
+    }
+
+    [Fact]
+    public void AFullFolder_MakesRoomFromStaleJobs_NotFromUncollectedFreshOnes()
+    {
+        Job("job-0001.pdf", 400, TimeSpan.FromDays(2));   // stale: may go
+        Job("job-0002.pdf", 400, TimeSpan.FromHours(2));  // waiting to be collected
+        Job("job-0003.pdf", 400, TimeSpan.FromMinutes(1));
+
+        var removed = CapturedFolder.Prune(_folder, CapturedFolder.DefaultMaxAge, maxBytes: 500);
+
+        Assert.Equal(1, removed.Files);
+        Assert.False(File.Exists(Path.Combine(_folder, "job-0001.pdf")));
+        Assert.True(File.Exists(Path.Combine(_folder, "job-0002.pdf")));
         Assert.True(File.Exists(Path.Combine(_folder, "job-0003.pdf")));
     }
 
