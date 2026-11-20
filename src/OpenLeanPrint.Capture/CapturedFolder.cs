@@ -1,7 +1,3 @@
-using System.Runtime.Versioning;
-using System.Security.AccessControl;
-using System.Security.Principal;
-
 namespace OpenLeanPrint.Capture;
 
 /// <summary>
@@ -119,58 +115,11 @@ public static class CapturedFolder
 
         if (folder is null) return false;
 
-        return Same(folder, CaptureLocations.DefaultFolder) || Same(folder, CaptureLocations.SharedFolder);
+        return Same(folder, CaptureLocations.DefaultFolder) || Same(folder, CaptureLocations.MySharedFolder);
 
         static bool Same(string a, string b) =>
             string.Equals(a.TrimEnd(Path.DirectorySeparatorChar),
                           Path.GetFullPath(b).TrimEnd(Path.DirectorySeparatorChar),
                           StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Lets ordinary users manage what is in the machine-wide capture folder.
-    /// <para>
-    /// Without this, whether you can delete your own captured jobs depends on
-    /// who happened to create the folder first: <c>C:\ProgramData</c> grants
-    /// Users read and create but not delete, so files written by the service
-    /// (LocalSystem) cannot be removed by the person who printed them. Measured,
-    /// not assumed - on one machine the folder had been created by the app and
-    /// everything was deletable, which is exactly the kind of accident that
-    /// hides a problem.
-    /// </para>
-    /// <para>
-    /// The trade-off is the one already noted for this folder: it is shared, so
-    /// on a machine with several users they can see - and now also remove - each
-    /// other's captured jobs. Running without the service keeps everything
-    /// per-user instead.
-    /// </para>
-    /// </summary>
-    /// <returns>True if the rule was applied.</returns>
-    [SupportedOSPlatform("windows")]
-    public static bool AllowUsersToManage(string folder)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(folder);
-
-        try
-        {
-            var directory = new DirectoryInfo(folder);
-            directory.Create();
-
-            var security = directory.GetAccessControl();
-            security.AddAccessRule(new FileSystemAccessRule(
-                new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, domainSid: null),
-                FileSystemRights.Modify | FileSystemRights.Synchronize,
-                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
-                PropagationFlags.None,
-                AccessControlType.Allow));
-            directory.SetAccessControl(security);
-            return true;
-        }
-        catch (Exception)
-        {
-            // Only an administrator or the owner may change a DACL. Failing here
-            // costs deletability, not capturing.
-            return false;
-        }
     }
 }

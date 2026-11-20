@@ -115,7 +115,10 @@ public class CapturedFolderTests : IDisposable
         // The guard before deleting anything: a PDF the user dragged in from
         // their own documents must never be treated as a captured hand-over.
         Assert.True(CapturedFolder.Holds(Path.Combine(CaptureLocations.DefaultFolder, "job-0001.pdf")));
-        Assert.True(CapturedFolder.Holds(Path.Combine(CaptureLocations.SharedFolder, "job-0001.pdf")));
+        Assert.True(CapturedFolder.Holds(Path.Combine(CaptureLocations.MySharedFolder, "job-0001.pdf")));
+        // The machine-wide folder itself, and other users' folders in it, are not ours.
+        Assert.False(CapturedFolder.Holds(Path.Combine(CaptureLocations.SharedFolder, "job-0001.pdf")));
+        Assert.False(CapturedFolder.Holds(Path.Combine(CaptureLocations.SharedFolder, "S-1-5-21-1-2-3-1001", "job-0001.pdf")));
 
         Assert.False(CapturedFolder.Holds(Path.Combine(_folder, "job-0001.pdf")));
         Assert.False(CapturedFolder.Holds(Path.Combine(CaptureLocations.DefaultFolder, "sub", "job-0001.pdf")));

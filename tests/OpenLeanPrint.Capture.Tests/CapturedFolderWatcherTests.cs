@@ -132,6 +132,33 @@ public class CapturedFolderWatcherTests : IDisposable
     }
 
     [Fact]
+    public void AFolderSomeoneElseCreates_IsWaitedFor_AndItsFirstJobArrives()
+    {
+        // The service creates each user's folder with their first job; the app
+        // cannot create it, so it must wait for it and then take what is in it.
+        string folder = Path.Combine(_folder, "S-1-5-21-1-2-3-1001");
+        using var watcher = new CapturedFolderWatcher(folder)
+        {
+            CreateFolder = false,
+            FolderPollInterval = TimeSpan.FromMilliseconds(100),
+        };
+
+        var arrived = Collect(watcher, 1, () =>
+        {
+            watcher.Start();
+            Thread.Sleep(300);
+            Assert.False(Directory.Exists(folder));
+            Assert.False(watcher.IsWatching);
+
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(Path.Combine(folder, "job-0001.pdf"), new byte[64]);
+        });
+
+        Assert.Single(arrived);
+        Assert.True(watcher.IsWatching);
+    }
+
+    [Fact]
     public void RaisesJobArrived_ForANewFile()
     {
         using var watcher = new CapturedFolderWatcher(_folder);

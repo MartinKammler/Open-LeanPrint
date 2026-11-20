@@ -4,6 +4,23 @@ All notable changes to Open-LeanPrint. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.8] — 2026-11-20
+
+### Changed
+
+- **Each user's print jobs are private.** The service used to put everybody's
+  captured jobs into one folder every user of the PC could read, change and
+  delete. Each job now goes into a folder of its own for the account that
+  printed it - `%ProgramData%\OpenLeanPrint\captured\<SID>` - which only that
+  account, SYSTEM and administrators can open, and the app only looks in yours.
+  The folder above is closed to ordinary users, so nobody can prepare a folder
+  for someone else to read along. A job that names no account of the PC is
+  refused instead of being stored where others could see it.
+- A job printed before the update that no app had collected yet stays in the
+  old shared folder, which the app no longer reads; it is out of every user's
+  reach there and the service clears it after a week. Normally there is none -
+  the app takes each job as it arrives.
+
 ## [0.5.7] — 2026-11-19
 
 Robustness, from a second review of the capture path.

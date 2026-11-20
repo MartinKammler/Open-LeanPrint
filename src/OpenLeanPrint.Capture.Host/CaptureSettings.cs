@@ -24,6 +24,14 @@ public sealed record CaptureSettings
     /// <summary>Size the folder may reach before the oldest jobs go. Zero means no limit.</summary>
     public long MaxBytes { get; init; } = CapturedFolder.DefaultMaxBytes;
 
+    /// <summary>
+    /// Each user's jobs in a folder of their own that only they can open,
+    /// named after their SID. On for the service, which writes everyone's jobs
+    /// into one machine-wide folder; the console host writes to the folder of
+    /// whoever runs it, which is private already.
+    /// </summary>
+    public bool PerUserFolders { get; init; }
+
     /// <summary>Where the service records what it did, next to the captured jobs.</summary>
     public string LogPath => Path.Combine(
         Directory.GetParent(OutputFolder)?.FullName ?? OutputFolder, "service.log");
@@ -68,6 +76,7 @@ public sealed record CaptureSettings
                 ?? (asService ? CaptureLocations.SharedFolder : CaptureLocations.DefaultFolder),
             MaxAge = maxAge,
             MaxBytes = maxBytes,
+            PerUserFolders = asService && OperatingSystem.IsWindows(),
         };
     }
 }

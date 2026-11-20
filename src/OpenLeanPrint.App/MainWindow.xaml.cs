@@ -396,10 +396,10 @@ public partial class MainWindow : Window
         if (_capture.Count > 0) return;
 
         // Two places, because jobs can arrive from two directions: the Windows
-        // service writes to the machine-wide folder (it runs as LocalSystem and
-        // has no per-user one), while a console host or this app writes to the
-        // per-user folder.
-        string[] folders = new[] { CaptureLocations.DefaultFolder, CaptureLocations.SharedFolder }
+        // service writes to this user's own folder inside the machine-wide one
+        // (it runs as LocalSystem and has no per-user profile), while a console
+        // host or this app writes to the per-user data folder.
+        string[] folders = new[] { CaptureLocations.DefaultFolder, CaptureLocations.MySharedFolder }
             .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
         foreach (string folder in folders) CapturedFolder.Prune(folder);
@@ -415,7 +415,14 @@ public partial class MainWindow : Window
                 // was closed is waiting there - and passing those over looked
                 // exactly like a printer that swallows everything. LastCollectedUtc
                 // is what keeps a job from being shown twice.
-                var watcher = new CapturedFolderWatcher(folder);
+                //
+                // The service's folder is created by the service, with this
+                // user's first job; until then the watcher waits for it.
+                var watcher = new CapturedFolderWatcher(folder)
+                {
+                    CreateFolder = !string.Equals(folder, CaptureLocations.MySharedFolder,
+                                                  StringComparison.OrdinalIgnoreCase),
+                };
                 watcher.JobArrived += (_, path) => Dispatcher.Invoke(() => CollectJob(path));
                 watcher.HandlingFailed += (_, failure) =>
                     App.Log($"could not take {Path.GetFileName(failure.Path)}: {failure.Error.Message}");

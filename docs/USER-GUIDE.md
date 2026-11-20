@@ -85,8 +85,10 @@ and telling Windows otherwise would have it convert every job to grey on the way
 in, before Open-LeanPrint ever sees it.
 
 Where the file lands depends on who caught it. The **service** writes to
-`%ProgramData%\Open-LeanPrint\captured`, because it runs as LocalSystem, whose
-per-user folder is somewhere no one can reach. The app or the console host,
+`%ProgramData%\Open-LeanPrint\captured\<your SID>`, because it runs as
+LocalSystem, whose per-user folder is somewhere no one can reach. Every user has
+a folder of their own in there that only they can open — see
+[Several users on one PC](#several-users-on-one-pc). The app or the console host,
 running as you, write to `%LOCALAPPDATA%\Open-LeanPrint\captured`. The app watches
 both, and deletes each file once it has it — see
 [How long captured jobs are kept](#how-long-captured-jobs-are-kept).
@@ -342,7 +344,7 @@ openleanprint print out.pdf --printer "Microsoft Print to PDF" --out proof.pdf
 
 | What | Where |
 |---|---|
-| Captured print jobs (service) | `%ProgramData%\Open-LeanPrint\captured` — deleted as the app takes them |
+| Captured print jobs (service) | `%ProgramData%\Open-LeanPrint\captured\<your SID>` — deleted as the app takes them |
 | Captured print jobs (app or console host) | `%LOCALAPPDATA%\Open-LeanPrint\captured` |
 | What the service did | `%ProgramData%\Open-LeanPrint\service.log` |
 | App settings | `%APPDATA%\Open-LeanPrint\settings.json` |
@@ -367,12 +369,27 @@ PDFs you dragged in yourself are never deleted, whatever happens to the pool.
 For those the file *is* the document, and the difference is the one thing this
 code checks before deleting anything.
 
-You can also just empty the folder in Explorer. That is less obvious than it
-sounds: `C:\ProgramData` grants ordinary users read and create but *not* delete,
-so files written by the service would otherwise be undeletable by the person who
-printed them. The service therefore grants the machine's users control of its
-capture folder explicitly, rather than leaving it to whoever happened to create
-the folder first.
+You can also just empty your folder in Explorer: the service gives you full
+control of the jobs in it, which `C:\ProgramData` on its own would not.
+
+### Several users on one PC
+
+The service catches everybody's print jobs, but it keeps them apart. Each job
+goes into a folder named after the Windows account the print queue says printed
+it (its SID, e.g. `S-1-5-21-…-1001`), and only that account — plus SYSTEM and
+administrators — can open that folder. Nobody else can read, change or delete
+what you printed, and the app only ever looks in your own folder.
+
+The `captured` folder above them is closed to ordinary users: they can pass
+through it to their own folder, but not list it or put anything in it, so nobody
+can set up a folder for someone else in advance. Your folder appears with the
+first job you print; the app waits for it until then.
+
+A job that names no account of this PC is refused, and Windows reports the print
+as failed — rather than leaving it where someone else might read it. One thing
+the folders do not prevent: a program running on this PC can send a job *in
+someone else's name* straight to the service's local port, and it would then
+appear in their pool. It cannot read anything that way.
 
 **Why there and not `%TEMP%`?** The service runs as LocalSystem, whose `%TEMP%`
 is `C:\Windows\Temp` — as unreachable for you as its `%LOCALAPPDATA%`, and swept

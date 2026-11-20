@@ -29,7 +29,10 @@ namespace OpenLeanPrint.Capture;
 /// </summary>
 public sealed class CapturedFolderWatcher : IDisposable
 {
-    private readonly FileSystemWatcher _watcher;
+    private readonly string _filter;
+    private FileSystemWatcher? _watcher;
+    private Timer? _waitForFolder;
+    private readonly object _startLock = new();
     private readonly BlockingCollection<string> _queue = new();
     private readonly HashSet<string> _seen = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _attempts = new(StringComparer.OrdinalIgnoreCase);
@@ -42,19 +45,7 @@ public sealed class CapturedFolderWatcher : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
 
         Folder = Path.GetFullPath(folder);
-        _watcher = new FileSystemWatcher(Folder, filter)
-        {
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size,
-            IncludeSubdirectories = false,
-        };
-        _watcher.Created += (_, e) => Enqueue(e.FullPath);
-        // Some writers create a temp file and rename it into place.
-        _watcher.Renamed += (_, e) => Enqueue(e.FullPath);
-        // Renamed away or deleted: the name is free for a new job.
-        _watcher.Renamed += (_, e) => Forget(e.OldFullPath);
-        _watcher.Deleted += (_, e) => Forget(e.FullPath);
-        // A buffer overflow means events were lost; the folder still knows.
-        _watcher.Error += (_, _) => Reconcile();
+        _filter = filter;
     }
 
     /// <summary>The folder being watched (absolute).</summary>
@@ -68,6 +59,17 @@ public sealed class CapturedFolderWatcher : IDisposable
 
     /// <summary>How often a file that never settled is tried before <see cref="JobTimedOut"/> gives it up.</summary>
     public int MaxAttempts { get; init; } = 3;
+
+    /// <summary>
+    /// Whether <see cref="Start"/> creates the folder. Off for a folder someone
+    /// else creates - the capture service makes each user's own folder with
+    /// their first job, and they could not create it themselves. Until it
+    /// exists, the watcher looks for it every <see cref="FolderPollInterval"/>.
+    /// </summary>
+    public bool CreateFolder { get; init; } = true;
+
+    /// <summary>How often a folder that does not exist yet is looked for.</summary>
+    public TimeSpan FolderPollInterval { get; init; } = TimeSpan.FromSeconds(2);
 
     /// <summary>Optional veto, e.g. to ignore a nested output folder.</summary>
     public Func<string, bool>? Accept { get; init; }
@@ -90,7 +92,7 @@ public sealed class CapturedFolderWatcher : IDisposable
     {
         if (_consumer is not null) return;
 
-        Directory.CreateDirectory(Folder);
+        if (CreateFolder) Directory.CreateDirectory(Folder);
         _cancellation = new CancellationTokenSource();
         var token = _cancellation.Token;
 
@@ -101,19 +103,78 @@ public sealed class CapturedFolderWatcher : IDisposable
         };
         _consumer.Start();
 
-        _watcher.EnableRaisingEvents = true;
-        _reconcile = new Timer(_ => Reconcile(), null, ReconcileInterval, ReconcileInterval);
+        // A folder that only appears later holds nothing old: whatever is in it
+        // then - the job that made it, at least - is new.
+        if (!TryBeginWatching(includeExisting))
+            _waitForFolder = new Timer(_ => TryBeginWatching(includeExisting: true), null,
+                                       FolderPollInterval, FolderPollInterval);
+    }
 
-        if (includeExisting)
-            foreach (string path in Directory.EnumerateFiles(Folder, _watcher.Filter)) Enqueue(path);
+    /// <summary>Is the folder being watched yet? False while it does not exist.</summary>
+    public bool IsWatching
+    {
+        get { lock (_startLock) return _watcher is not null; }
+    }
+
+    /// <summary>Starts the actual watching, once the folder is there.</summary>
+    private bool TryBeginWatching(bool includeExisting)
+    {
+        lock (_startLock)
+        {
+            if (_watcher is not null) return true;
+            if (_cancellation is null || _cancellation.IsCancellationRequested) return false;
+            if (!Directory.Exists(Folder)) return false;
+
+            FileSystemWatcher watcher;
+            try
+            {
+                watcher = new FileSystemWatcher(Folder, _filter)
+                {
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size,
+                    IncludeSubdirectories = false,
+                };
+            }
+            catch (Exception)
+            {
+                return false; // gone again, or not ours to watch yet
+            }
+
+            watcher.Created += (_, e) => Enqueue(e.FullPath);
+            // Some writers create a temp file and rename it into place.
+            watcher.Renamed += (_, e) => Enqueue(e.FullPath);
+            // Renamed away or deleted: the name is free for a new job.
+            watcher.Renamed += (_, e) => Forget(e.OldFullPath);
+            watcher.Deleted += (_, e) => Forget(e.FullPath);
+            // A buffer overflow means events were lost; the folder still knows.
+            watcher.Error += (_, _) => Reconcile();
+            watcher.EnableRaisingEvents = true;
+            _watcher = watcher;
+
+            _waitForFolder?.Dispose();
+            _waitForFolder = null;
+            _reconcile = new Timer(_ => Reconcile(), null, ReconcileInterval, ReconcileInterval);
+
+            if (includeExisting) Reconcile();
+            return true;
+        }
     }
 
     /// <summary>Stops watching. Safe to call more than once.</summary>
     public void Stop()
     {
-        _watcher.EnableRaisingEvents = false;
-        _reconcile?.Dispose();
-        _reconcile = null;
+        lock (_startLock)
+        {
+            _waitForFolder?.Dispose();
+            _waitForFolder = null;
+            if (_watcher is not null)
+            {
+                _watcher.EnableRaisingEvents = false;
+                _watcher.Dispose();
+                _watcher = null;
+            }
+            _reconcile?.Dispose();
+            _reconcile = null;
+        }
         _cancellation?.Cancel();
         _consumer?.Join(TimeSpan.FromSeconds(2));
         _consumer = null;
@@ -219,7 +280,7 @@ public sealed class CapturedFolderWatcher : IDisposable
     {
         try
         {
-            var present = new HashSet<string>(Directory.EnumerateFiles(Folder, _watcher.Filter),
+            var present = new HashSet<string>(Directory.EnumerateFiles(Folder, _filter),
                                               StringComparer.OrdinalIgnoreCase);
             lock (_seen)
             {
@@ -267,7 +328,6 @@ public sealed class CapturedFolderWatcher : IDisposable
     public void Dispose()
     {
         Stop();
-        _watcher.Dispose();
         _queue.Dispose();
     }
 }

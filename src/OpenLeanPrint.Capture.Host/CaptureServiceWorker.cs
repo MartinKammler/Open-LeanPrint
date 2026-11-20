@@ -31,16 +31,14 @@ internal sealed class CaptureServiceWorker : BackgroundService
             .GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion ?? "unknown";
         Log($"Starting build {build} on port {_settings.Port}, writing to {_settings.OutputFolder}");
 
-        // Whoever creates this folder first decides who may delete from it, and
-        // as a service that is LocalSystem - which would leave the person who
-        // printed the job unable to remove it. Say so explicitly instead.
-        if (OperatingSystem.IsWindows() &&
-            string.Equals(_settings.OutputFolder, CaptureLocations.SharedFolder,
-                          StringComparison.OrdinalIgnoreCase))
+        // Every user's jobs go into a folder only they can open; the folder
+        // above is closed to ordinary users, so nobody can see - or set up in
+        // advance - anyone else's.
+        if (_settings.PerUserFolders && OperatingSystem.IsWindows())
         {
-            Log(CapturedFolder.AllowUsersToManage(_settings.OutputFolder)
-                ? "Captured jobs can be managed by the users of this machine."
-                : "Could not grant users access to the capture folder; they may not be able to delete their jobs.");
+            Log(UserCaptureFolders.SecureRoot(_settings.OutputFolder)
+                ? "Each user's jobs are kept in a folder only they can open."
+                : "Could not restrict access to the capture folder.");
         }
 
         Prune();
@@ -59,7 +57,7 @@ internal sealed class CaptureServiceWorker : BackgroundService
             {
                 try
                 {
-                    string path = CapturedJobWriter.Save(job, _settings.OutputFolder);
+                    string path = CapturedJobWriter.Save(job, FolderFor(job));
                     Log($"Captured job #{job.JobId} from {job.UserName ?? "(unknown user)"}, " +
                         $"{job.Data.Length:N0} bytes, sides={job.Sides ?? "(unset)"}, " +
                         $"colour={job.ColorMode ?? "(unset)"} -> {Path.GetFileName(path)}");
@@ -96,6 +94,21 @@ internal sealed class CaptureServiceWorker : BackgroundService
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Where a job goes: the folder of the user who printed it. A job that
+    /// names nobody this machine knows has no such folder and is refused -
+    /// put where everyone can read it, it would undo the point of the folders.
+    /// </summary>
+    private string FolderFor(CapturedJob job)
+    {
+        if (!_settings.PerUserFolders || !OperatingSystem.IsWindows()) return _settings.OutputFolder;
+
+        var user = UserCaptureFolders.Resolve(job.UserName)
+            ?? throw new InvalidOperationException(
+                $"the job names no user of this machine ({job.UserName ?? "no name at all"})");
+        return UserCaptureFolders.Prepare(_settings.OutputFolder, user);
+    }
+
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         if (_server is not null)
@@ -115,9 +128,18 @@ internal sealed class CaptureServiceWorker : BackgroundService
     /// </summary>
     private void Prune()
     {
-        var removed = CapturedFolder.Prune(_settings.OutputFolder, _settings.MaxAge, _settings.MaxBytes);
-        if (removed.RemovedAnything)
-            Log($"Removed {removed.Files} captured job(s), {removed.Bytes / (1024.0 * 1024.0):N1} MB.");
+        // The top folder too: jobs from before there were per-user folders.
+        var folders = new List<string> { _settings.OutputFolder };
+        if (_settings.PerUserFolders && OperatingSystem.IsWindows())
+            folders.AddRange(UserCaptureFolders.All(_settings.OutputFolder));
+
+        foreach (string folder in folders)
+        {
+            var removed = CapturedFolder.Prune(folder, _settings.MaxAge, _settings.MaxBytes);
+            if (removed.RemovedAnything)
+                Log($"Removed {removed.Files} captured job(s), {removed.Bytes / (1024.0 * 1024.0):N1} MB, " +
+                    $"from {Path.GetFileName(folder)}.");
+        }
     }
 
     private void Log(string message)

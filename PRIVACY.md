@@ -20,7 +20,7 @@ archive:
 
 | | |
 |---|---|
-| Where it lands | `%ProgramData%\Open-LeanPrint\captured` when the Windows service catches it, `%LOCALAPPDATA%\Open-LeanPrint\captured` when the app or the console host does |
+| Where it lands | `%ProgramData%\Open-LeanPrint\captured\<your SID>` when the Windows service catches it, `%LOCALAPPDATA%\Open-LeanPrint\captured` when the app or the console host does |
 | How long it stays | until the app reads it into its job pool, which deletes it immediately |
 | If no app is running | it waits, and the service removes it after 7 days or 500 MB, whichever comes first (the size limit spares jobs younger than a day) |
 | When you uninstall | the folder is removed |
@@ -28,10 +28,10 @@ archive:
 PDFs you open or drag in yourself are read where they are and never moved,
 copied or deleted.
 
-**On a machine with several users**, the service's folder is machine-wide, so
-one person's captured jobs can be read — and removed — by the others while they
-are waiting there. If that matters to you, run without the service: the app and
-the console host keep everything per-user. If the folder is inside a synced
+**On a machine with several users**, each user's jobs wait in a folder of their
+own that only they (and administrators) can open; the others can neither read nor
+remove them. A job that names no account of the machine is refused rather than
+stored where anyone could see it. If the folder is inside a synced
 folder such as OneDrive, the files will be uploaded by that service under its own
 terms, not ours.
 

@@ -14,13 +14,15 @@ Worth knowing when assessing risk:
   `http://localhost:<port>/leanprint` (6310 by default). It is intended for the
   local machine only; do not expose that port to a network.
 - **It handles your documents.** Captured print jobs are written as PDFs — to
-  `%ProgramData%\Open-LeanPrint\captured` when the service catches them, to
+  `%ProgramData%\Open-LeanPrint\captured\<SID>` when the service catches them, to
   `%LOCALAPPDATA%\Open-LeanPrint\captured` when the app or console host does. They
   are exactly the documents you printed. The app deletes each file as it takes it
   into the pool and the service clears up what nobody collected, but treat those
   folders like the documents themselves — a synced folder (OneDrive, Dropbox)
-  would upload whatever is in them. The service's folder is machine-wide, so on a
-  shared machine other users can read what is waiting there.
+  would upload whatever is in them. The service keeps each user's jobs in a
+  folder only that user and administrators can open. It trusts the user name
+  the print job carries, so a local program could send a job in someone else's
+  name - which lands in their pool, but reveals nothing to the sender.
   [PRIVACY.md](PRIVACY.md) sets this out in full.
 - **It parses untrusted PDFs.** Imposition and preview read PDFs through
   PdfSharpCore and PDFium. A malicious PDF is the most likely attack surface
