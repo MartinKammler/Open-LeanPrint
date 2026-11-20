@@ -14,6 +14,13 @@ as on Intel.
 
 </div>
 
+> [!IMPORTANT]
+> **This project has moved and has a new name: [OpenVirtPrinter](https://github.com/MartinKammler/OpenVirtPrinter).**
+> This repository is archived and gets no more updates. An installed Open-LeanPrint
+> offers the update to OpenVirtPrinter by itself and is replaced in place - settings,
+> printer and service included. The original Open-LeanPrint by Alexander Zarenko is
+> at [azitc-ac/Open-LeanPrint](https://github.com/azitc-ac/Open-LeanPrint).
+
 > **This is a fork.** Open-LeanPrint was created by **Alexander Zarenko** —
 > the original lives at [azitc-ac/Open-LeanPrint](https://github.com/azitc-ac/Open-LeanPrint). Thank you for a
 > genuinely good tool and for releasing it under the MIT licence, which is what
